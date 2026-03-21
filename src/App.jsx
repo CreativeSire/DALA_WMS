@@ -16,9 +16,10 @@ import { ProductsPage, BrandPartnersPage, UsersPage } from './pages/ProductsPage
 import Layout from './components/Layout'
 import { createApiClient } from './lib/apiClient'
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
-const apiBaseUrl = import.meta.env.VITE_API_BASE_URL
+const runtimeConfig = globalThis.__APP_CONFIG__ || {}
+const supabaseUrl = runtimeConfig.VITE_SUPABASE_URL || import.meta.env.VITE_SUPABASE_URL
+const supabaseAnonKey = runtimeConfig.VITE_SUPABASE_ANON_KEY || import.meta.env.VITE_SUPABASE_ANON_KEY
+const apiBaseUrl = runtimeConfig.VITE_API_BASE_URL || import.meta.env.VITE_API_BASE_URL
 const hasBackendApi = Boolean(apiBaseUrl)
 const hasSupabaseConfig = Boolean(supabaseUrl && supabaseAnonKey)
 export const supabase = hasSupabaseConfig ? createClient(supabaseUrl, supabaseAnonKey) : null
