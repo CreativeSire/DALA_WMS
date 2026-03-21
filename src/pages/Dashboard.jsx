@@ -3,7 +3,7 @@ import { useAuth } from '../App'
 import { Card, Badge } from '../components/ui'
 
 export default function Dashboard({ setPage }) {
-  const { supabase, profile } = useAuth()
+  const { supabase, api, authMode, profile } = useAuth()
   const [data, setData] = useState({ totalProducts:0, lowStock:0, outOfStock:0, nearExpiry:0, expired:0, pendingCasualties:0, recentMovements:[], stockAlerts:[], expiryAlerts:[] })
   const [loading, setLoading] = useState(true)
 
@@ -11,6 +11,13 @@ export default function Dashboard({ setPage }) {
 
   async function load() {
     setLoading(true)
+    if (authMode === 'api') {
+      const dashboard = await api.get('/api/inventory/dashboard')
+      setData(dashboard)
+      setLoading(false)
+      return
+    }
+
     const [
       { count: totalProducts },
       { data: reorderData },

@@ -7,7 +7,7 @@ const REASON_LABEL = { damaged: 'Damaged', expired: 'Expired', lost: 'Lost', the
 const REASON_COLOR = { damaged: '#ff6b35', expired: '#ef4444', lost: '#ffb547', theft: '#a78bfa', other: '#4a6068' }
 
 export default function CasualtyPage() {
-  const { supabase, profile } = useAuth()
+  const { supabase, api, authMode, profile } = useAuth()
   const [casualties, setCasualties] = useState([])
   const [batches, setBatches] = useState([])
   const [products, setProducts] = useState([])
@@ -26,24 +26,38 @@ export default function CasualtyPage() {
 
   async function loadData() {
     setLoading(true)
-    const [{ data: c }, { data: p }] = await Promise.all([
-      supabase.from('casualty_summary').select('*').order('created_at', { ascending: false }),
-      supabase.from('products').select('id, name, sku_code').eq('is_active', true).order('name'),
-    ])
-    setCasualties(c || [])
-    setProducts(p || [])
+    if (authMode === 'api') {
+      const [{ casualties }, { products }] = await Promise.all([
+        api.get('/api/casualties'),
+        api.get('/api/products'),
+      ])
+      setCasualties(casualties || [])
+      setProducts((products || []).filter((product) => product.is_active))
+    } else {
+      const [{ data: c }, { data: p }] = await Promise.all([
+        supabase.from('casualty_summary').select('*').order('created_at', { ascending: false }),
+        supabase.from('products').select('id, name, sku_code').eq('is_active', true).order('name'),
+      ])
+      setCasualties(c || [])
+      setProducts(p || [])
+    }
     setLoading(false)
   }
 
   async function loadBatchesForProduct(productId) {
-    const { data } = await supabase
-      .from('stock_batches')
-      .select('id, batch_number, quantity_remaining, expiry_date, status')
-      .eq('product_id', productId)
-      .not('status', 'in', '("depleted","written_off")')
-      .gt('quantity_remaining', 0)
-      .order('received_at', { ascending: true })
-    setBatches(data || [])
+    if (authMode === 'api') {
+      const { batches } = await api.get(`/api/inventory/products/${productId}/batches/available`)
+      setBatches(batches || [])
+    } else {
+      const { data } = await supabase
+        .from('stock_batches')
+        .select('id, batch_number, quantity_remaining, expiry_date, status')
+        .eq('product_id', productId)
+        .not('status', 'in', '("depleted","written_off")')
+        .gt('quantity_remaining', 0)
+        .order('received_at', { ascending: true })
+      setBatches(data || [])
+    }
   }
 
   async function handleLog(e) {
@@ -55,16 +69,26 @@ export default function CasualtyPage() {
       return showAlert(`Quantity exceeds available stock in this batch (${batch.quantity_remaining}).`, 'error')
     }
     setSubmitting(true)
-    const { error } = await supabase.from('casualties').insert({
-      batch_id: form.batchId,
-      product_id: form.productId,
-      reason: form.reason,
-      quantity: qty,
-      description: form.description,
-      logged_by: profile.id,
-      status: 'pending',
-    })
-    if (error) { showAlert(error.message, 'error'); setSubmitting(false); return }
+    if (authMode === 'api') {
+      await api.post('/api/casualties', {
+        batchId: form.batchId,
+        productId: form.productId,
+        reason: form.reason,
+        quantity: qty,
+        description: form.description,
+      })
+    } else {
+      const { error } = await supabase.from('casualties').insert({
+        batch_id: form.batchId,
+        product_id: form.productId,
+        reason: form.reason,
+        quantity: qty,
+        description: form.description,
+        logged_by: profile.id,
+        status: 'pending',
+      })
+      if (error) { showAlert(error.message, 'error'); setSubmitting(false); return }
+    }
     showAlert('Casualty logged. Awaiting approval.', 'success')
     setShowLogModal(false)
     setForm({ productId: '', batchId: '', reason: 'damaged', quantity: '', description: '' })
@@ -75,34 +99,34 @@ export default function CasualtyPage() {
 
   async function handleApprove() {
     setSubmitting(true)
-    // Deduct from batch
-    const { data: casualty } = await supabase.from('casualties').select('*, stock_batches(quantity_remaining)').eq('id', selected.id).single()
-    const newQty = (casualty?.stock_batches?.quantity_remaining || 0) - selected.quantity
-    await supabase.from('stock_batches').update({
-      quantity_remaining: Math.max(0, newQty),
-      status: newQty <= 0 ? 'written_off' : 'active',
-    }).eq('id', selected.batch_id)
+    if (authMode === 'api') {
+      await api.post(`/api/casualties/${selected.id}/approve`, {})
+    } else {
+      const { data: casualty } = await supabase.from('casualties').select('*, stock_batches(quantity_remaining)').eq('id', selected.id).single()
+      const newQty = (casualty?.stock_batches?.quantity_remaining || 0) - selected.quantity
+      await supabase.from('stock_batches').update({
+        quantity_remaining: Math.max(0, newQty),
+        status: newQty <= 0 ? 'written_off' : 'active',
+      }).eq('id', selected.batch_id)
 
-    // Log movement
-    await supabase.from('stock_movements').insert({
-      batch_id: selected.batch_id,
-      product_id: selected.product_id,
-      movement_type: 'write_off',
-      quantity: -selected.quantity,
-      unit_fraction: 1,
-      balance_after: Math.max(0, newQty),
-      reference_number: `CASUALTY-${selected.id.slice(0, 8).toUpperCase()}`,
-      notes: `${REASON_LABEL[selected.reason]}: ${selected.description || ''}`,
-      created_by: profile.id,
-    })
+      await supabase.from('stock_movements').insert({
+        batch_id: selected.batch_id,
+        product_id: selected.product_id,
+        movement_type: 'write_off',
+        quantity: -selected.quantity,
+        unit_fraction: 1,
+        balance_after: Math.max(0, newQty),
+        reference_number: `CASUALTY-${selected.id.slice(0, 8).toUpperCase()}`,
+        notes: `${REASON_LABEL[selected.reason]}: ${selected.description || ''}`,
+        created_by: profile.id,
+      })
 
-    // Approve casualty
-    await supabase.from('casualties').update({
-      status: 'approved',
-      approved_by: profile.id,
-      approved_at: new Date().toISOString(),
-    }).eq('id', selected.id)
-
+      await supabase.from('casualties').update({
+        status: 'approved',
+        approved_by: profile.id,
+        approved_at: new Date().toISOString(),
+      }).eq('id', selected.id)
+    }
     showAlert(`Casualty approved. ${selected.quantity} units written off.`, 'success')
     setShowReviewModal(false)
     setSelected(null)
@@ -113,12 +137,16 @@ export default function CasualtyPage() {
   async function handleReject() {
     if (!rejectionReason.trim()) return showAlert('Please enter a rejection reason.', 'error')
     setSubmitting(true)
-    await supabase.from('casualties').update({
-      status: 'rejected',
-      approved_by: profile.id,
-      approved_at: new Date().toISOString(),
-      rejection_reason: rejectionReason,
-    }).eq('id', selected.id)
+    if (authMode === 'api') {
+      await api.post(`/api/casualties/${selected.id}/reject`, { rejectionReason })
+    } else {
+      await supabase.from('casualties').update({
+        status: 'rejected',
+        approved_by: profile.id,
+        approved_at: new Date().toISOString(),
+        rejection_reason: rejectionReason,
+      }).eq('id', selected.id)
+    }
     showAlert('Casualty rejected.', 'warn')
     setShowReviewModal(false)
     setSelected(null)

@@ -3,7 +3,7 @@ import { useAuth } from '../App'
 import { Card, PageHeader, Table, Badge, Button, Input } from '../components/ui'
 
 export default function LedgerPage() {
-  const { supabase } = useAuth()
+  const { supabase, api, authMode } = useAuth()
   const [view, setView] = useState('stock') // stock | movements
   const [stockData, setStockData] = useState([])
   const [movements, setMovements] = useState([])
@@ -15,15 +15,25 @@ export default function LedgerPage() {
   async function loadData() {
     setLoading(true)
     if (view === 'stock') {
-      const { data } = await supabase.from('current_stock').select('*').order('brand_partner')
-      setStockData(data || [])
+      if (authMode === 'api') {
+        const { stock } = await api.get('/api/inventory/stock/current')
+        setStockData(stock || [])
+      } else {
+        const { data } = await supabase.from('current_stock').select('*').order('brand_partner')
+        setStockData(data || [])
+      }
     } else {
-      const { data } = await supabase
-        .from('stock_movements')
-        .select('*, products(name, sku_code), profiles(full_name), stock_batches(batch_number, expiry_date)')
-        .order('created_at', { ascending: false })
-        .limit(200)
-      setMovements(data || [])
+      if (authMode === 'api') {
+        const { movements } = await api.get('/api/inventory/movements?limit=200')
+        setMovements(movements || [])
+      } else {
+        const { data } = await supabase
+          .from('stock_movements')
+          .select('*, products(name, sku_code), profiles(full_name), stock_batches(batch_number, expiry_date)')
+          .order('created_at', { ascending: false })
+          .limit(200)
+        setMovements(data || [])
+      }
     }
     setLoading(false)
   }

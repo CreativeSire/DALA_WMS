@@ -3,7 +3,7 @@ import { useAuth } from '../App'
 import { Card, PageHeader, Table, Badge, Button } from '../components/ui'
 
 export default function PartnerPerformancePage() {
-  const { supabase } = useAuth()
+  const { supabase, api, authMode } = useAuth()
   const [partners, setPartners] = useState([])
   const [selected, setSelected] = useState(null)
   const [partnerGRNs, setPartnerGRNs] = useState([])
@@ -15,32 +15,43 @@ export default function PartnerPerformancePage() {
 
   async function loadData() {
     setLoading(true)
-    const { data } = await supabase.from('brand_partner_summary').select('*').order('partner_name')
-    setPartners(data || [])
+    if (authMode === 'api') {
+      const { partners } = await api.get('/api/partners/summary')
+      setPartners(partners || [])
+    } else {
+      const { data } = await supabase.from('brand_partner_summary').select('*').order('partner_name')
+      setPartners(data || [])
+    }
     setLoading(false)
   }
 
   async function loadPartnerDetail(partner) {
     setSelected(partner)
     setDrillLoading(true)
-    const [{ data: grns }, { data: stock }] = await Promise.all([
-      supabase.from('grn_records')
-        .select('*, profiles(full_name), grn_items(quantity_received, products(name, sku_code))')
+    if (authMode === 'api') {
+      const detail = await api.get(`/api/partners/${partner.partner_id}/detail`)
+      setSelected(detail.summary)
+      setPartnerGRNs(detail.grns || [])
+      setPartnerStock(detail.stock || [])
+    } else {
+      const [{ data: grns }, { data: stock }] = await Promise.all([
+        supabase.from('grn_records')
+          .select('*, profiles(full_name), grn_items(quantity_received, products(name, sku_code))')
+          .eq('brand_partner_id', partner.partner_id)
+          .order('created_at', { ascending: false })
+          .limit(20),
+        supabase.from('current_stock')
+          .select('*')
+          .order('product_name'),
+      ])
+      const { data: partnerProds } = await supabase
+        .from('products')
+        .select('id')
         .eq('brand_partner_id', partner.partner_id)
-        .order('created_at', { ascending: false })
-        .limit(20),
-      supabase.from('current_stock')
-        .select('*')
-        .order('product_name'),
-    ])
-    // Filter stock to this partner's products
-    const { data: partnerProds } = await supabase
-      .from('products')
-      .select('id')
-      .eq('brand_partner_id', partner.partner_id)
-    const partnerProdIds = new Set((partnerProds || []).map(p => p.id))
-    setPartnerGRNs(grns || [])
-    setPartnerStock((stock || []).filter(s => partnerProdIds.has(s.product_id)))
+      const partnerProdIds = new Set((partnerProds || []).map(p => p.id))
+      setPartnerGRNs(grns || [])
+      setPartnerStock((stock || []).filter(s => partnerProdIds.has(s.product_id)))
+    }
     setDrillLoading(false)
   }
 

@@ -3,7 +3,7 @@ import { useAuth } from '../App'
 import { Card, Button, Input, Select, Modal, Table, PageHeader, Alert, Badge } from '../components/ui'
 
 export default function GRNPage() {
-  const { supabase, profile } = useAuth()
+  const { supabase, api, authMode, profile } = useAuth()
   const [grns, setGrns] = useState([])
   const [partners, setPartners] = useState([])
   const [products, setProducts] = useState([])
@@ -24,6 +24,18 @@ export default function GRNPage() {
   useEffect(() => { loadData() }, [])
 
   async function loadData() {
+    if (authMode === 'api') {
+      const [{ grns }, { partners }, { products }] = await Promise.all([
+        api.get('/api/grns'),
+        api.get('/api/partners'),
+        api.get('/api/products'),
+      ])
+      setGrns(grns || [])
+      setPartners((partners || []).filter((partner) => partner.is_active))
+      setProducts((products || []).filter((product) => product.is_active))
+      return
+    }
+
     const [{ data: g }, { data: p }, { data: pr }] = await Promise.all([
       supabase.from('grn_records').select('*, brand_partners(name), profiles(full_name)').order('created_at', { ascending: false }).limit(50),
       supabase.from('brand_partners').select('*').eq('is_active', true).order('name'),
@@ -46,64 +58,67 @@ export default function GRNPage() {
 
     setLoading(true)
     try {
-      // Generate GRN number
-      const { data: grnNum } = await supabase.rpc('generate_grn_number') // fallback below
-      const grnNumber = grnNum || `GRN-${Date.now()}`
+      if (authMode === 'api') {
+        const response = await api.post('/api/grns', {
+          partnerId,
+          deliveryRef,
+          notes,
+          lines: validLines,
+        })
+        showAlert(response.message, 'success')
+      } else {
+        const { data: grnNum } = await supabase.rpc('generate_grn_number')
+        const grnNumber = grnNum || `GRN-${Date.now()}`
 
-      // Create GRN record
-      const { data: grn, error: grnErr } = await supabase.from('grn_records').insert({
-        grn_number: grnNumber,
-        brand_partner_id: partnerId,
-        received_by: profile.id,
-        delivery_note_ref: deliveryRef,
-        notes,
-        total_items: validLines.length,
-      }).select().single()
-      if (grnErr) throw grnErr
-
-      // Create batches and movements for each line
-      for (const line of validLines) {
-        const qty = parseFloat(line.quantity) * parseFloat(line.unitFraction)
-        
-        // Create batch
-        const { data: batch, error: batchErr } = await supabase.from('stock_batches').insert({
-          product_id: line.productId,
-          batch_number: line.batchNumber || null,
-          quantity_received: qty,
-          quantity_remaining: qty,
-          unit_cost: line.unitCost ? parseFloat(line.unitCost) : null,
-          expiry_date: line.expiryDate || null,
-          grn_reference: grn.grn_number,
-          created_by: profile.id,
+        const { data: grn, error: grnErr } = await supabase.from('grn_records').insert({
+          grn_number: grnNumber,
+          brand_partner_id: partnerId,
+          received_by: profile.id,
+          delivery_note_ref: deliveryRef,
+          notes,
+          total_items: validLines.length,
         }).select().single()
-        if (batchErr) throw batchErr
+        if (grnErr) throw grnErr
 
-        // Create GRN item
-        await supabase.from('grn_items').insert({
-          grn_id: grn.id,
-          product_id: line.productId,
-          batch_id: batch.id,
-          quantity_received: qty,
-          unit_fraction: parseFloat(line.unitFraction),
-          batch_number: line.batchNumber || null,
-          expiry_date: line.expiryDate || null,
-          unit_cost: line.unitCost ? parseFloat(line.unitCost) : null,
-        })
+        for (const line of validLines) {
+          const qty = parseFloat(line.quantity) * parseFloat(line.unitFraction)
+          const { data: batch, error: batchErr } = await supabase.from('stock_batches').insert({
+            product_id: line.productId,
+            batch_number: line.batchNumber || null,
+            quantity_received: qty,
+            quantity_remaining: qty,
+            unit_cost: line.unitCost ? parseFloat(line.unitCost) : null,
+            expiry_date: line.expiryDate || null,
+            grn_reference: grn.grn_number,
+            created_by: profile.id,
+          }).select().single()
+          if (batchErr) throw batchErr
 
-        // Create stock movement
-        await supabase.from('stock_movements').insert({
-          batch_id: batch.id,
-          product_id: line.productId,
-          movement_type: 'grn',
-          quantity: qty,
-          unit_fraction: parseFloat(line.unitFraction),
-          balance_after: qty,
-          reference_number: grn.grn_number,
-          created_by: profile.id,
-        })
+          await supabase.from('grn_items').insert({
+            grn_id: grn.id,
+            product_id: line.productId,
+            batch_id: batch.id,
+            quantity_received: qty,
+            unit_fraction: parseFloat(line.unitFraction),
+            batch_number: line.batchNumber || null,
+            expiry_date: line.expiryDate || null,
+            unit_cost: line.unitCost ? parseFloat(line.unitCost) : null,
+          })
+
+          await supabase.from('stock_movements').insert({
+            batch_id: batch.id,
+            product_id: line.productId,
+            movement_type: 'grn',
+            quantity: qty,
+            unit_fraction: parseFloat(line.unitFraction),
+            balance_after: qty,
+            reference_number: grn.grn_number,
+            created_by: profile.id,
+          })
+        }
+
+        showAlert(`GRN ${grn.grn_number} created successfully.`, 'success')
       }
-
-      showAlert(`GRN ${grn.grn_number} created successfully.`, 'success')
       setShowModal(false)
       resetForm()
       loadData()

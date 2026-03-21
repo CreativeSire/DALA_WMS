@@ -6,7 +6,7 @@ import { planCountAdjustment } from '../lib/inventory'
 const STATUS_COLOR = { open:'#4fc3f7', submitted:'#ffb547', approved:'#00e5a0', closed:'#4a6068' }
 
 export default function PhysicalCountPage() {
-  const { supabase, profile } = useAuth()
+  const { supabase, api, authMode, profile } = useAuth()
   const [sessions, setSessions] = useState([])
   const [activeSession, setActiveSession] = useState(null)
   const [countLines, setCountLines] = useState([])
@@ -22,29 +22,51 @@ export default function PhysicalCountPage() {
 
   async function loadSessions() {
     setLoading(true)
-    const { data } = await supabase
-      .from('count_sessions')
-      .select('*, opener:profiles!opened_by(full_name), approver:profiles!approved_by(full_name)')
-      .order('opened_at', { ascending: false })
-    setSessions(data || [])
+    if (authMode === 'api') {
+      const { sessions } = await api.get('/api/count-sessions')
+      setSessions(sessions || [])
+    } else {
+      const { data } = await supabase
+        .from('count_sessions')
+        .select('*, opener:profiles!opened_by(full_name), approver:profiles!approved_by(full_name)')
+        .order('opened_at', { ascending: false })
+      setSessions(data || [])
+    }
     setLoading(false)
   }
 
   async function openSession(session) {
     setActiveSession(session)
-    const { data } = await supabase
-      .from('count_detail')
-      .select('*')
-      .eq('session_id', session.id)
-      .order('brand_partner')
-    setCountLines(data || [])
+    if (authMode === 'api') {
+      const detail = await api.get(`/api/count-sessions/${session.id}`)
+      setActiveSession(detail.session)
+      setCountLines(detail.lines || [])
+    } else {
+      const { data } = await supabase
+        .from('count_detail')
+        .select('*')
+        .eq('session_id', session.id)
+        .order('brand_partner')
+      setCountLines(data || [])
+    }
   }
 
   async function createSession(e) {
     e.preventDefault()
     setSaving(true)
+    if (authMode === 'api') {
+      const response = await api.post('/api/count-sessions', { notes: newNotes })
+      showAlert(response.message, 'success')
+      setShowNewModal(false)
+      setNewNotes('')
+      await loadSessions()
+      const detail = await api.get(`/api/count-sessions/${response.session.id}`)
+      setActiveSession(detail.session)
+      setCountLines(detail.lines || [])
+      setSaving(false)
+      return
+    }
 
-    // Snapshot current system quantities for all active products
     const { data: stock } = await supabase.from('current_stock').select('*')
     const { data: countRef } = await supabase.rpc('generate_count_ref')
     const ref = countRef || `CNT-${new Date().toISOString().slice(0,10).replace(/-/g,'')}-${Date.now().toString().slice(-4)}`
@@ -58,7 +80,6 @@ export default function PhysicalCountPage() {
 
     if (error) { showAlert(error.message, 'error'); setSaving(false); return }
 
-    // Insert count lines with system snapshot
     if (stock && stock.length > 0) {
       const lines = stock.map(s => ({
         session_id: session.id,
@@ -80,17 +101,25 @@ export default function PhysicalCountPage() {
 
   async function saveCount(lineId, value) {
     const qty = value === '' ? null : parseFloat(value)
-    await supabase.from('count_lines').update({
-      counted_quantity: qty,
-      counted_by: profile.id,
-    }).eq('id', lineId)
+    if (authMode === 'api') {
+      await api.patch(`/api/count-sessions/lines/${lineId}`, { countedQuantity: qty })
+    } else {
+      await supabase.from('count_lines').update({
+        counted_quantity: qty,
+        counted_by: profile.id,
+      }).eq('id', lineId)
+    }
     setCountLines(prev => prev.map(l =>
       l.line_id === lineId ? { ...l, counted_quantity: qty, variance: qty === null ? null : qty - l.system_quantity } : l
     ))
   }
 
   async function saveVarianceNote(lineId, note) {
-    await supabase.from('count_lines').update({ variance_note: note }).eq('id', lineId)
+    if (authMode === 'api') {
+      await api.patch(`/api/count-sessions/lines/${lineId}`, { varianceNote: note })
+    } else {
+      await supabase.from('count_lines').update({ variance_note: note }).eq('id', lineId)
+    }
     setCountLines(prev => prev.map(l => l.line_id === lineId ? { ...l, variance_note: note } : l))
   }
 
@@ -101,11 +130,15 @@ export default function PhysicalCountPage() {
       showAlert(`${uncounted.length} SKU${uncounted.length > 1 ? 's' : ''} still uncounted. Enter 0 if empty.`, 'warn')
       setSaving(false); return
     }
-    await supabase.from('count_sessions').update({
-      status: 'submitted',
-      submitted_by: profile.id,
-      submitted_at: new Date().toISOString(),
-    }).eq('id', activeSession.id)
+    if (authMode === 'api') {
+      await api.post(`/api/count-sessions/${activeSession.id}/submit`, {})
+    } else {
+      await supabase.from('count_sessions').update({
+        status: 'submitted',
+        submitted_by: profile.id,
+        submitted_at: new Date().toISOString(),
+      }).eq('id', activeSession.id)
+    }
     showAlert('Count session submitted for approval.', 'success')
     loadSessions()
     const updated = { ...activeSession, status: 'submitted' }
@@ -116,6 +149,15 @@ export default function PhysicalCountPage() {
   async function approveSession() {
     setSaving(true)
     try {
+      if (authMode === 'api') {
+        const response = await api.post(`/api/count-sessions/${activeSession.id}/approve`, {})
+        showAlert(response.message, 'success')
+        loadSessions()
+        setActiveSession(null)
+        setCountLines([])
+        return
+      }
+
       // Apply adjustments for all lines with variance that are not zero
       const variantLines = countLines.filter(l =>
         l.counted_quantity !== null && l.variance !== 0

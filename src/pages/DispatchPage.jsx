@@ -4,7 +4,7 @@ import { Card, Button, Input, Select, Modal, Table, PageHeader, Alert, Badge } f
 import { allocateFIFOFromBatches, getAvailableQuantity } from '../lib/inventory'
 
 export default function DispatchPage() {
-  const { supabase, profile } = useAuth()
+  const { supabase, api, authMode, profile } = useAuth()
   const [dispatches, setDispatches] = useState([])
   const [products, setProducts] = useState([])
   const [showModal, setShowModal] = useState(false)
@@ -24,6 +24,16 @@ export default function DispatchPage() {
   useEffect(() => { loadData() }, [])
 
   async function loadData() {
+    if (authMode === 'api') {
+      const [{ dispatches }, { products }] = await Promise.all([
+        api.get('/api/dispatches'),
+        api.get('/api/products'),
+      ])
+      setDispatches(dispatches || [])
+      setProducts((products || []).filter((product) => product.is_active))
+      return
+    }
+
     const [{ data: d }, { data: p }] = await Promise.all([
       supabase.from('dispatch_notes')
         .select('*, profiles!dispatched_by(full_name), confirmedBy:profiles!confirmed_by(full_name)')
@@ -37,14 +47,15 @@ export default function DispatchPage() {
   async function fetchAvailableBatches(productId) {
     if (!productId) return []
     if (availableBatches[productId]) return availableBatches[productId]
-    const { data } = await supabase
-      .from('stock_batches')
-      .select('*')
-      .eq('product_id', productId)
-      .not('status', 'in', '("depleted","written_off")')
-      .gt('quantity_remaining', 0)
-      .order('received_at', { ascending: true }) // FIFO: oldest first
-    const batches = data || []
+    const batches = authMode === 'api'
+      ? (await api.get(`/api/inventory/products/${productId}/batches/available`)).batches || []
+      : (await supabase
+        .from('stock_batches')
+        .select('*')
+        .eq('product_id', productId)
+        .not('status', 'in', '("depleted","written_off")')
+        .gt('quantity_remaining', 0)
+        .order('received_at', { ascending: true })).data || []
     setAvailableBatches(prev => ({ ...prev, [productId]: batches }))
     return batches
   }
@@ -77,65 +88,72 @@ export default function DispatchPage() {
 
     setLoading(true)
     try {
-      const { data: dispatchNum } = await supabase.rpc('generate_dispatch_number')
-      const dispatchNumber = dispatchNum || `DSP-${Date.now()}`
+      if (authMode === 'api') {
+        const response = await api.post('/api/dispatches', {
+          retailerName,
+          retailerAddress,
+          notes: dispatchNotes,
+          lines: validLines,
+        })
+        showAlert(`${response.message} Awaiting security confirmation.`, 'success')
+      } else {
+        const { data: dispatchNum } = await supabase.rpc('generate_dispatch_number')
+        const dispatchNumber = dispatchNum || `DSP-${Date.now()}`
 
-      const { data: dispatch, error: dErr } = await supabase.from('dispatch_notes').insert({
-        dispatch_number: dispatchNumber,
-        retailer_name: retailerName,
-        retailer_address: retailerAddress,
-        dispatched_by: profile.id,
-        notes: dispatchNotes,
-        status: 'pending',
-      }).select().single()
-      if (dErr) throw dErr
+        const { data: dispatch, error: dErr } = await supabase.from('dispatch_notes').insert({
+          dispatch_number: dispatchNumber,
+          retailer_name: retailerName,
+          retailer_address: retailerAddress,
+          dispatched_by: profile.id,
+          notes: dispatchNotes,
+          status: 'pending',
+        }).select().single()
+        if (dErr) throw dErr
 
-      const batchCache = {}
-      for (const line of validLines) {
-        const qty = parseFloat(line.quantity) * parseFloat(line.unitFraction)
-        const sourceBatches = batchCache[line.productId] || await fetchAvailableBatches(line.productId)
-        if (!batchCache[line.productId]) {
-          batchCache[line.productId] = sourceBatches.map(batch => ({ ...batch }))
+        const batchCache = {}
+        for (const line of validLines) {
+          const qty = parseFloat(line.quantity) * parseFloat(line.unitFraction)
+          const sourceBatches = batchCache[line.productId] || await fetchAvailableBatches(line.productId)
+          if (!batchCache[line.productId]) {
+            batchCache[line.productId] = sourceBatches.map(batch => ({ ...batch }))
+          }
+          const { allocations, shortfall } = allocateFIFOFromBatches(batchCache[line.productId], qty)
+          if (shortfall > 0) throw new Error('Stock allocation failed — insufficient stock.')
+
+          for (const alloc of allocations) {
+            const batch = batchCache[line.productId].find(b => b.id === alloc.batchId)
+            const newQty = batch.quantity_remaining - alloc.quantity
+            await supabase.from('stock_batches').update({
+              quantity_remaining: newQty,
+              status: newQty <= 0 ? 'depleted' : batch.status,
+            }).eq('id', alloc.batchId)
+            batch.quantity_remaining = newQty
+            if (newQty <= 0) batch.status = 'depleted'
+
+            await supabase.from('dispatch_items').insert({
+              dispatch_id: dispatch.id,
+              product_id: line.productId,
+              batch_id: alloc.batchId,
+              quantity_dispatched: alloc.quantity,
+              unit_fraction: parseFloat(line.unitFraction),
+            })
+
+            await supabase.from('stock_movements').insert({
+              batch_id: alloc.batchId,
+              product_id: line.productId,
+              movement_type: 'dispatch',
+              quantity: -alloc.quantity,
+              unit_fraction: parseFloat(line.unitFraction),
+              balance_after: newQty,
+              reference_number: dispatchNumber,
+              retailer_name: retailerName,
+              created_by: profile.id,
+            })
+          }
         }
-        const { allocations, shortfall } = allocateFIFOFromBatches(batchCache[line.productId], qty)
-        if (shortfall > 0) throw new Error('Stock allocation failed — insufficient stock.')
 
-        for (const alloc of allocations) {
-          // Deduct from batch
-          const batch = batchCache[line.productId].find(b => b.id === alloc.batchId)
-          const newQty = batch.quantity_remaining - alloc.quantity
-          await supabase.from('stock_batches').update({
-            quantity_remaining: newQty,
-            status: newQty <= 0 ? 'depleted' : batch.status,
-          }).eq('id', alloc.batchId)
-          batch.quantity_remaining = newQty
-          if (newQty <= 0) batch.status = 'depleted'
-
-          // Create dispatch item
-          await supabase.from('dispatch_items').insert({
-            dispatch_id: dispatch.id,
-            product_id: line.productId,
-            batch_id: alloc.batchId,
-            quantity_dispatched: alloc.quantity,
-            unit_fraction: parseFloat(line.unitFraction),
-          })
-
-          // Create movement
-          await supabase.from('stock_movements').insert({
-            batch_id: alloc.batchId,
-            product_id: line.productId,
-            movement_type: 'dispatch',
-            quantity: -alloc.quantity,
-            unit_fraction: parseFloat(line.unitFraction),
-            balance_after: newQty,
-            reference_number: dispatchNumber,
-            retailer_name: retailerName,
-            created_by: profile.id,
-          })
-        }
+        showAlert(`Dispatch ${dispatchNumber} created. Awaiting security confirmation.`, 'success')
       }
-
-      showAlert(`Dispatch ${dispatchNumber} created. Awaiting security confirmation.`, 'success')
       setShowModal(false)
       resetForm()
       loadData()
@@ -147,12 +165,17 @@ export default function DispatchPage() {
 
   async function handleConfirm(dispatch) {
     setLoading(true)
-    await supabase.from('dispatch_notes').update({
-      status: 'confirmed',
-      confirmed_by: profile.id,
-      confirmed_at: new Date().toISOString(),
-    }).eq('id', dispatch.id)
-    showAlert(`Dispatch ${dispatch.dispatch_number} confirmed by security.`, 'success')
+    if (authMode === 'api') {
+      const response = await api.post(`/api/dispatches/${dispatch.id}/confirm`, {})
+      showAlert(response.message, 'success')
+    } else {
+      await supabase.from('dispatch_notes').update({
+        status: 'confirmed',
+        confirmed_by: profile.id,
+        confirmed_at: new Date().toISOString(),
+      }).eq('id', dispatch.id)
+      showAlert(`Dispatch ${dispatch.dispatch_number} confirmed by security.`, 'success')
+    }
     setShowConfirmModal(false)
     setSelectedDispatch(null)
     loadData()

@@ -6,7 +6,7 @@ const LEVEL_COLOR = { expired: '#ef4444', near_expiry: '#ffb547', ok: '#00e5a0' 
 const LEVEL_LABEL = { expired: 'EXPIRED', near_expiry: 'NEAR EXPIRY', ok: 'OK' }
 
 export default function ExpiryPage() {
-  const { supabase, profile } = useAuth()
+  const { supabase, api, authMode, profile } = useAuth()
   const [batches, setBatches] = useState([])
   const [filter, setFilter] = useState('all') // all | near_expiry | expired
   const [search, setSearch] = useState('')
@@ -20,34 +20,53 @@ export default function ExpiryPage() {
 
   async function loadData() {
     setLoading(true)
-    const { data } = await supabase
-      .from('expiry_alerts')
-      .select('*')
-      .order('days_until_expiry', { ascending: true })
-    setBatches(data || [])
+    if (authMode === 'api') {
+      const [{ alerts }, { products }] = await Promise.all([
+        api.get('/api/inventory/expiry-alerts'),
+        api.get('/api/products'),
+      ])
+      setBatches(alerts || [])
+      setProducts((products || []).filter((product) => product.is_active))
+    } else {
+      const { data } = await supabase
+        .from('expiry_alerts')
+        .select('*')
+        .order('days_until_expiry', { ascending: true })
+      setBatches(data || [])
 
-    const { data: prods } = await supabase
-      .from('products')
-      .select('id, name, sku_code, expiry_alert_days')
-      .eq('is_active', true)
-      .order('name')
-    setProducts(prods || [])
+      const { data: prods } = await supabase
+        .from('products')
+        .select('id, name, sku_code, expiry_alert_days')
+        .eq('is_active', true)
+        .order('name')
+      setProducts(prods || [])
+    }
     setLoading(false)
   }
 
   async function runExpiryUpdate() {
-    await supabase.rpc('update_batch_statuses')
+    if (authMode === 'api') {
+      await api.post('/api/inventory/expiry-alerts/refresh', {})
+    } else {
+      await supabase.rpc('update_batch_statuses')
+    }
     showAlert('Expiry statuses refreshed.', 'success')
     loadData()
   }
 
   async function handleThresholdUpdate(e) {
     e.preventDefault()
-    const { error } = await supabase
-      .from('products')
-      .update({ expiry_alert_days: parseInt(thresholdForm.days) })
-      .eq('id', thresholdForm.productId)
-    if (error) return showAlert(error.message, 'error')
+    if (authMode === 'api') {
+      await api.patch(`/api/products/${thresholdForm.productId}/expiry-alert-days`, {
+        expiry_alert_days: parseInt(thresholdForm.days, 10),
+      })
+    } else {
+      const { error } = await supabase
+        .from('products')
+        .update({ expiry_alert_days: parseInt(thresholdForm.days) })
+        .eq('id', thresholdForm.productId)
+      if (error) return showAlert(error.message, 'error')
+    }
     showAlert('Alert threshold updated.', 'success')
     setShowThresholdModal(false)
     setThresholdForm({ productId: '', days: '' })

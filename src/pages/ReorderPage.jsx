@@ -3,7 +3,7 @@ import { useAuth } from '../App'
 import { Card, PageHeader, Table, Badge, Button, Alert, Modal, Input } from '../components/ui'
 
 export default function ReorderPage() {
-  const { supabase, profile } = useAuth()
+  const { supabase, api, authMode, profile } = useAuth()
   const [alerts, setAlerts] = useState([])
   const [allStock, setAllStock] = useState([])
   const [view, setView] = useState('alerts') // alerts | all
@@ -19,23 +19,38 @@ export default function ReorderPage() {
 
   async function loadData() {
     setLoading(true)
-    const [{ data: a }, { data: s }] = await Promise.all([
-      supabase.from('reorder_alerts').select('*'),
-      supabase.from('current_stock').select('*').order('brand_partner'),
-    ])
-    setAlerts(a || [])
-    setAllStock(s || [])
+    if (authMode === 'api') {
+      const [{ alerts }, { stock }] = await Promise.all([
+        api.get('/api/inventory/reorder-alerts'),
+        api.get('/api/inventory/stock/current'),
+      ])
+      setAlerts(alerts || [])
+      setAllStock(stock || [])
+    } else {
+      const [{ data: a }, { data: s }] = await Promise.all([
+        supabase.from('reorder_alerts').select('*'),
+        supabase.from('current_stock').select('*').order('brand_partner'),
+      ])
+      setAlerts(a || [])
+      setAllStock(s || [])
+    }
     setLoading(false)
   }
 
   async function handleSetThreshold(e) {
     e.preventDefault()
     setSubmitting(true)
-    const { error } = await supabase
-      .from('products')
-      .update({ reorder_threshold: parseFloat(newThreshold) })
-      .eq('id', selectedProduct.product_id)
-    if (error) { showAlert(error.message, 'error'); setSubmitting(false); return }
+    if (authMode === 'api') {
+      await api.patch(`/api/products/${selectedProduct.product_id}/reorder-threshold`, {
+        reorder_threshold: parseFloat(newThreshold),
+      })
+    } else {
+      const { error } = await supabase
+        .from('products')
+        .update({ reorder_threshold: parseFloat(newThreshold) })
+        .eq('id', selectedProduct.product_id)
+      if (error) { showAlert(error.message, 'error'); setSubmitting(false); return }
+    }
     showAlert(`Reorder threshold updated for ${selectedProduct.product_name}.`, 'success')
     setShowSetModal(false)
     setSelectedProduct(null)

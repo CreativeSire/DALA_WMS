@@ -5,9 +5,15 @@ import express from 'express'
 import helmet from 'helmet'
 import { env } from './config/env.js'
 import { authRouter } from './routes/auth.js'
+import { casualtiesRouter } from './routes/casualties.js'
+import { countsRouter } from './routes/counts.js'
+import { dispatchesRouter } from './routes/dispatches.js'
+import { grnsRouter } from './routes/grns.js'
 import { healthRouter } from './routes/health.js'
+import { inventoryRouter } from './routes/inventory.js'
 import { partnersRouter } from './routes/partners.js'
 import { productsRouter } from './routes/products.js'
+import { reportsRouter } from './routes/reports.js'
 import { usersRouter } from './routes/users.js'
 import { errorHandler, notFoundHandler } from './middleware/error-handler.js'
 
@@ -34,6 +40,12 @@ export function createApp() {
         users: '/api/users',
         partners: '/api/partners',
         products: '/api/products',
+        inventory: '/api/inventory',
+        grns: '/api/grns',
+        dispatches: '/api/dispatches',
+        casualties: '/api/casualties',
+        counts: '/api/count-sessions',
+        reports: '/api/reports/:id',
       },
     })
   })
@@ -43,6 +55,12 @@ export function createApp() {
   app.use('/api/users', usersRouter)
   app.use('/api/partners', partnersRouter)
   app.use('/api/products', productsRouter)
+  app.use('/api/inventory', inventoryRouter)
+  app.use('/api/grns', grnsRouter)
+  app.use('/api/dispatches', dispatchesRouter)
+  app.use('/api/casualties', casualtiesRouter)
+  app.use('/api/count-sessions', countsRouter)
+  app.use('/api/reports', reportsRouter)
 
   app.use(notFoundHandler)
   app.use(errorHandler)

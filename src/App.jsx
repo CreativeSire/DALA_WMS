@@ -33,7 +33,7 @@ export default function App() {
   const [session, setSession] = useState(null)
   const [profile, setProfile] = useState(null)
   const [loading, setLoading] = useState(true)
-  const [page, setPage] = useState(hasBackendApi && !hasSupabaseConfig ? 'how-it-works' : 'dashboard')
+  const [page, setPage] = useState('dashboard')
 
   if (previewMode === 'manual') {
     return <HowItWorksPage />
@@ -120,20 +120,20 @@ export default function App() {
   const renderPage = () => {
     switch (page) {
       // ── Core ──────────────────────────────────────────────
-      case 'dashboard':    return hasBackendApi && !hasSupabaseConfig ? <BackendMigrationPage page="Dashboard" /> : <Dashboard setPage={setPage} />
+      case 'dashboard':    return <Dashboard setPage={setPage} />
       case 'how-it-works': return <HowItWorksPage />
       // ── Phase 1 — Stock ───────────────────────────────────
-      case 'grn':          return hasBackendApi && !hasSupabaseConfig ? <BackendMigrationPage page="Stock Intake (GRN)" /> : can(['admin','warehouse_manager']) ? <GRNPage /> : <AccessDenied />
-      case 'dispatch':     return hasBackendApi && !hasSupabaseConfig ? <BackendMigrationPage page="Dispatch" /> : can(['admin','operations','warehouse_manager','security']) ? <DispatchPage /> : <AccessDenied />
-      case 'ledger':       return hasBackendApi && !hasSupabaseConfig ? <BackendMigrationPage page="Ledger" /> : <LedgerPage />
+      case 'grn':          return can(['admin','warehouse_manager']) ? <GRNPage /> : <AccessDenied />
+      case 'dispatch':     return can(['admin','operations','warehouse_manager','security']) ? <DispatchPage /> : <AccessDenied />
+      case 'ledger':       return <LedgerPage />
       // ── Phase 2 — Intelligence ────────────────────────────
-      case 'expiry':       return hasBackendApi && !hasSupabaseConfig ? <BackendMigrationPage page="Expiry Tracking" /> : can(['admin','warehouse_manager','operations','finance']) ? <ExpiryPage /> : <AccessDenied />
-      case 'casualties':   return hasBackendApi && !hasSupabaseConfig ? <BackendMigrationPage page="Casualties" /> : can(['admin','warehouse_manager','operations']) ? <CasualtyPage /> : <AccessDenied />
-      case 'reorder':      return hasBackendApi && !hasSupabaseConfig ? <BackendMigrationPage page="Reorder Alerts" /> : can(['admin','warehouse_manager','operations','finance']) ? <ReorderPage /> : <AccessDenied />
-      case 'performance':  return hasBackendApi && !hasSupabaseConfig ? <BackendMigrationPage page="Partner Performance" /> : can(['admin','operations','finance']) ? <PartnerPerformancePage /> : <AccessDenied />
+      case 'expiry':       return can(['admin','warehouse_manager','operations','finance']) ? <ExpiryPage /> : <AccessDenied />
+      case 'casualties':   return can(['admin','warehouse_manager','operations']) ? <CasualtyPage /> : <AccessDenied />
+      case 'reorder':      return can(['admin','warehouse_manager','operations','finance']) ? <ReorderPage /> : <AccessDenied />
+      case 'performance':  return can(['admin','operations','finance']) ? <PartnerPerformancePage /> : <AccessDenied />
       // ── Phase 3 — Reconciliation ──────────────────────────
-      case 'count':        return hasBackendApi && !hasSupabaseConfig ? <BackendMigrationPage page="Physical Count" /> : can(['admin','warehouse_manager','operations']) ? <PhysicalCountPage /> : <AccessDenied />
-      case 'reports':      return hasBackendApi && !hasSupabaseConfig ? <BackendMigrationPage page="Reports & Export" /> : can(['admin','warehouse_manager','operations','finance']) ? <ReportsPage /> : <AccessDenied />
+      case 'count':        return can(['admin','warehouse_manager','operations']) ? <PhysicalCountPage /> : <AccessDenied />
+      case 'reports':      return can(['admin','warehouse_manager','operations','finance']) ? <ReportsPage /> : <AccessDenied />
       // ── Setup ─────────────────────────────────────────────
       case 'products':     return can(['admin','warehouse_manager','operations']) ? <ProductsPage /> : <AccessDenied />
       case 'partners':     return can(['admin','operations']) ? <BrandPartnersPage /> : <AccessDenied />
@@ -185,24 +185,6 @@ function DeploymentSetupPage() {
         </div>
 
         <HowItWorksPage />
-      </div>
-    </div>
-  )
-}
-
-function BackendMigrationPage({ page }) {
-  return (
-    <div style={{ maxWidth: 920 }}>
-      <div style={{ background: '#111618', border: '1px solid #1a2224', borderRadius: 10, padding: 24 }}>
-        <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 22, color: '#e0e8ea', marginBottom: 8 }}>
-          {page} is not on the Railway backend yet.
-        </div>
-        <div style={{ fontSize: 14, color: '#93a7ac', lineHeight: 1.6, marginBottom: 16 }}>
-          Auth, users, products, and brand partners can already run against the new backend. Inventory, movement, and reporting pages still require the remaining migration work from the Railway backend plan.
-        </div>
-        <div style={{ fontFamily: 'DM Mono, monospace', fontSize: 11, color: '#00e5a0', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
-          Current backend-ready modules: Login, Users, Products, Brand Partners
-        </div>
       </div>
     </div>
   )

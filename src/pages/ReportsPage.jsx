@@ -14,7 +14,7 @@ const REPORTS = [
 ]
 
 export default function ReportsPage() {
-  const { supabase } = useAuth()
+  const { supabase, api, authMode } = useAuth()
   const [activeReport, setActiveReport] = useState(null)
   const [reportData, setReportData] = useState([])
   const [loading, setLoading] = useState(false)
@@ -29,6 +29,16 @@ export default function ReportsPage() {
     setReportData([])
 
     try {
+      if (authMode === 'api') {
+        const query = ['movement_log','dispatch_report','grn_report','casualty_report'].includes(reportId)
+          ? `?from=${dateFrom}&to=${dateTo}`
+          : ''
+        const response = await api.get(`/api/reports/${reportId}${query}`)
+        setReportData(formatApiReportRows(reportId, response.rows || []))
+        setLoading(false)
+        return
+      }
+
       let data = []
       switch (reportId) {
 
@@ -399,4 +409,121 @@ export default function ReportsPage() {
       )}
     </div>
   )
+}
+
+function formatApiReportRows(reportId, rows) {
+  switch (reportId) {
+    case 'stock_summary':
+      return rows.map((s) => ({
+        sku: s.sku_code,
+        product: s.product_name,
+        partner: s.brand_partner,
+        category: s.category || '—',
+        unit: s.unit_type,
+        stock: Number(s.total_stock).toFixed(2),
+        active: s.active_batches,
+        nearExpiry: s.near_expiry_batches,
+        expired: s.expired_batches,
+        reorderAt: s.reorder_threshold > 0 ? s.reorder_threshold : '—',
+        earliestExpiry: s.earliest_expiry ? new Date(s.earliest_expiry).toLocaleDateString('en-GB') : '—',
+        status: Number(s.total_stock) === 0 ? 'out_of_stock' : s.reorder_threshold > 0 && Number(s.total_stock) <= Number(s.reorder_threshold) ? 'low' : 'ok',
+      }))
+    case 'abc': {
+      const total = rows.reduce((sum, row) => sum + Number(row.dispatched || 0), 0)
+      let cumulative = 0
+      return rows.map((row) => {
+        cumulative += Number(row.dispatched || 0)
+        const pct = total > 0 ? (cumulative / total) * 100 : 0
+        return {
+          sku: row.sku,
+          product: row.product,
+          partner: row.partner,
+          dispatched: Number(row.dispatched || 0).toFixed(2),
+          cumPct: pct.toFixed(1),
+          class: pct <= 80 ? 'A' : pct <= 95 ? 'B' : 'C',
+        }
+      })
+    }
+    case 'stock_ageing': {
+      const now = new Date()
+      return rows.map((row) => {
+        const days = Math.floor((now - new Date(row.received_at)) / 86400000)
+        return {
+          sku: row.sku_code,
+          product: row.product_name,
+          partner: row.brand_partner,
+          batch: row.batch_number || '—',
+          qty: Number(row.quantity_remaining).toFixed(2),
+          receivedAt: new Date(row.received_at).toLocaleDateString('en-GB'),
+          daysInStock: days,
+          expiryDate: row.expiry_date ? new Date(row.expiry_date).toLocaleDateString('en-GB') : '—',
+          ageClass: days > 90 ? 'old' : days > 30 ? 'medium' : 'fresh',
+        }
+      })
+    }
+    case 'movement_log':
+      return rows.map((m) => ({
+        date: new Date(m.created_at).toLocaleDateString('en-GB'),
+        time: new Date(m.created_at).toLocaleTimeString('en-GB', { hour:'2-digit', minute:'2-digit' }),
+        product: m.products?.name,
+        sku: m.products?.sku_code,
+        type: m.movement_type,
+        qty: m.quantity,
+        balanceAfter: m.balance_after,
+        ref: m.reference_number || '—',
+        retailer: m.retailer_name || '—',
+        user: m.profiles?.full_name || '—',
+      }))
+    case 'dispatch_report':
+      return rows.map((r) => ({
+        date: new Date(r.created_at).toLocaleDateString('en-GB'),
+        dispatch: r.dispatch_number,
+        retailer: r.retailer_name,
+        product: r.product_name,
+        sku: r.sku_code,
+        qty: Number(r.quantity_dispatched).toFixed(2),
+        status: r.status,
+        dispatchedBy: r.dispatched_by_name || '—',
+      }))
+    case 'grn_report':
+      return rows.map((r) => ({
+        date: new Date(r.created_at).toLocaleDateString('en-GB'),
+        grn: r.grn_number,
+        partner: r.brand_partner_name,
+        product: r.product_name,
+        sku: r.sku_code,
+        qty: Number(r.quantity_received).toFixed(2),
+        expiry: r.expiry_date ? new Date(r.expiry_date).toLocaleDateString('en-GB') : '—',
+        receivedBy: r.received_by_name || '—',
+        ref: r.delivery_note_ref || '—',
+      }))
+    case 'casualty_report':
+      return rows.map((r) => ({
+        date: new Date(r.created_at).toLocaleDateString('en-GB'),
+        product: r.product_name,
+        sku: r.sku_code,
+        partner: r.brand_partner,
+        reason: r.reason,
+        qty: Number(r.quantity).toFixed(2),
+        status: r.status,
+        loggedBy: r.logged_by_name || '—',
+        approvedBy: r.approved_by_name || '—',
+        note: r.description || '—',
+      }))
+    case 'variance_report':
+      return rows.map((r) => ({
+        session: r.session_ref,
+        date: new Date(r.opened_at).toLocaleDateString('en-GB'),
+        product: r.product_name,
+        sku: r.sku_code,
+        partner: r.brand_partner,
+        systemQty: Number(r.system_quantity).toFixed(2),
+        countedQty: Number(r.counted_quantity).toFixed(2),
+        variance: Number(r.variance).toFixed(2),
+        note: r.variance_note || '—',
+        status: r.session_status,
+      }))
+    default:
+      return rows
+  }
 }

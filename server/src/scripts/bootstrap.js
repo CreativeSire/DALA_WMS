@@ -4,9 +4,17 @@ import { query, pool } from '../lib/db.js'
 
 const roleCheck = `CHECK (role IN ('admin','warehouse_manager','operations','finance','security'))`
 const unitTypeCheck = `CHECK (unit_type IN ('carton','piece','bag','crate'))`
+const movementTypeCheck = `CHECK (movement_type IN ('grn','dispatch','adjustment','write_off','transfer'))`
+const casualtyReasonCheck = `CHECK (reason IN ('damaged','expired','lost','theft','other'))`
+const casualtyStatusCheck = `CHECK (status IN ('pending','approved','rejected'))`
+const batchStatusCheck = `CHECK (status IN ('active','near_expiry','expired','depleted','written_off'))`
+const countStatusCheck = `CHECK (status IN ('open','submitted','approved','closed'))`
 
 async function bootstrap() {
   await query('CREATE EXTENSION IF NOT EXISTS pgcrypto')
+  await query(`CREATE SEQUENCE IF NOT EXISTS grn_seq START 1000`)
+  await query(`CREATE SEQUENCE IF NOT EXISTS dispatch_seq START 1000`)
+  await query(`CREATE SEQUENCE IF NOT EXISTS count_seq START 100`)
 
   await query(`
     CREATE TABLE IF NOT EXISTS app_users (
@@ -65,6 +73,155 @@ async function bootstrap() {
       updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     )
   `)
+
+  await query(`
+    CREATE TABLE IF NOT EXISTS stock_batches (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      product_id UUID NOT NULL REFERENCES products(id) ON DELETE RESTRICT,
+      batch_number TEXT,
+      quantity_received NUMERIC(14, 2) NOT NULL,
+      quantity_remaining NUMERIC(14, 2) NOT NULL,
+      unit_cost NUMERIC(14, 2),
+      expiry_date DATE,
+      manufacture_date DATE,
+      location TEXT NOT NULL DEFAULT 'Main Warehouse',
+      status TEXT NOT NULL DEFAULT 'active' ${batchStatusCheck},
+      grn_reference TEXT,
+      notes TEXT,
+      received_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      created_by UUID REFERENCES app_users(id) ON DELETE SET NULL,
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `)
+
+  await query(`
+    CREATE TABLE IF NOT EXISTS stock_movements (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      batch_id UUID NOT NULL REFERENCES stock_batches(id) ON DELETE RESTRICT,
+      product_id UUID NOT NULL REFERENCES products(id) ON DELETE RESTRICT,
+      movement_type TEXT NOT NULL ${movementTypeCheck},
+      quantity NUMERIC(14, 2) NOT NULL,
+      unit_fraction NUMERIC(8, 4) NOT NULL DEFAULT 1,
+      balance_after NUMERIC(14, 2) NOT NULL,
+      reference_number TEXT,
+      retailer_name TEXT,
+      notes TEXT,
+      created_by UUID REFERENCES app_users(id) ON DELETE SET NULL,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `)
+
+  await query(`
+    CREATE TABLE IF NOT EXISTS grn_records (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      grn_number TEXT NOT NULL UNIQUE,
+      brand_partner_id UUID NOT NULL REFERENCES brand_partners(id) ON DELETE RESTRICT,
+      received_by UUID REFERENCES app_users(id) ON DELETE SET NULL,
+      delivery_note_ref TEXT,
+      notes TEXT,
+      total_items INTEGER NOT NULL DEFAULT 0,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `)
+
+  await query(`
+    CREATE TABLE IF NOT EXISTS grn_items (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      grn_id UUID NOT NULL REFERENCES grn_records(id) ON DELETE CASCADE,
+      product_id UUID NOT NULL REFERENCES products(id) ON DELETE RESTRICT,
+      batch_id UUID REFERENCES stock_batches(id) ON DELETE SET NULL,
+      quantity_received NUMERIC(14, 2) NOT NULL,
+      unit_fraction NUMERIC(8, 4) NOT NULL DEFAULT 1,
+      batch_number TEXT,
+      expiry_date DATE,
+      unit_cost NUMERIC(14, 2)
+    )
+  `)
+
+  await query(`
+    CREATE TABLE IF NOT EXISTS dispatch_notes (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      dispatch_number TEXT NOT NULL UNIQUE,
+      retailer_name TEXT NOT NULL,
+      retailer_address TEXT,
+      dispatched_by UUID REFERENCES app_users(id) ON DELETE SET NULL,
+      confirmed_by UUID REFERENCES app_users(id) ON DELETE SET NULL,
+      confirmed_at TIMESTAMPTZ,
+      status TEXT NOT NULL DEFAULT 'pending',
+      notes TEXT,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `)
+
+  await query(`
+    CREATE TABLE IF NOT EXISTS dispatch_items (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      dispatch_id UUID NOT NULL REFERENCES dispatch_notes(id) ON DELETE CASCADE,
+      product_id UUID NOT NULL REFERENCES products(id) ON DELETE RESTRICT,
+      batch_id UUID NOT NULL REFERENCES stock_batches(id) ON DELETE RESTRICT,
+      quantity_dispatched NUMERIC(14, 2) NOT NULL,
+      unit_fraction NUMERIC(8, 4) NOT NULL DEFAULT 1
+    )
+  `)
+
+  await query(`
+    CREATE TABLE IF NOT EXISTS casualties (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      batch_id UUID NOT NULL REFERENCES stock_batches(id) ON DELETE RESTRICT,
+      product_id UUID NOT NULL REFERENCES products(id) ON DELETE RESTRICT,
+      reason TEXT NOT NULL ${casualtyReasonCheck},
+      quantity NUMERIC(14, 2) NOT NULL,
+      description TEXT,
+      status TEXT NOT NULL DEFAULT 'pending' ${casualtyStatusCheck},
+      logged_by UUID REFERENCES app_users(id) ON DELETE SET NULL,
+      approved_by UUID REFERENCES app_users(id) ON DELETE SET NULL,
+      approved_at TIMESTAMPTZ,
+      rejection_reason TEXT,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `)
+
+  await query(`
+    CREATE TABLE IF NOT EXISTS count_sessions (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      session_ref TEXT NOT NULL UNIQUE,
+      status TEXT NOT NULL DEFAULT 'open' ${countStatusCheck},
+      notes TEXT,
+      opened_by UUID REFERENCES app_users(id) ON DELETE SET NULL,
+      submitted_by UUID REFERENCES app_users(id) ON DELETE SET NULL,
+      approved_by UUID REFERENCES app_users(id) ON DELETE SET NULL,
+      opened_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      submitted_at TIMESTAMPTZ,
+      approved_at TIMESTAMPTZ,
+      closed_at TIMESTAMPTZ
+    )
+  `)
+
+  await query(`
+    CREATE TABLE IF NOT EXISTS count_lines (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      session_id UUID NOT NULL REFERENCES count_sessions(id) ON DELETE CASCADE,
+      product_id UUID NOT NULL REFERENCES products(id) ON DELETE RESTRICT,
+      system_quantity NUMERIC(14, 2) NOT NULL DEFAULT 0,
+      counted_quantity NUMERIC(14, 2),
+      variance NUMERIC(14, 2) GENERATED ALWAYS AS (
+        COALESCE(counted_quantity, system_quantity) - system_quantity
+      ) STORED,
+      variance_note TEXT,
+      adjustment_approved BOOLEAN NOT NULL DEFAULT FALSE,
+      counted_by UUID REFERENCES app_users(id) ON DELETE SET NULL,
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      UNIQUE (session_id, product_id)
+    )
+  `)
+
+  await query(`CREATE INDEX IF NOT EXISTS idx_stock_batches_product_status ON stock_batches(product_id, status, received_at)`)
+  await query(`CREATE INDEX IF NOT EXISTS idx_stock_movements_created_at ON stock_movements(created_at DESC)`)
+  await query(`CREATE INDEX IF NOT EXISTS idx_stock_movements_product_type ON stock_movements(product_id, movement_type, created_at DESC)`)
+  await query(`CREATE INDEX IF NOT EXISTS idx_grn_records_created_at ON grn_records(created_at DESC)`)
+  await query(`CREATE INDEX IF NOT EXISTS idx_dispatch_notes_created_at ON dispatch_notes(created_at DESC)`)
+  await query(`CREATE INDEX IF NOT EXISTS idx_casualties_created_at ON casualties(created_at DESC)`)
+  await query(`CREATE INDEX IF NOT EXISTS idx_count_sessions_opened_at ON count_sessions(opened_at DESC)`)
 
   if (env.INITIAL_ADMIN_EMAIL && env.INITIAL_ADMIN_PASSWORD && env.INITIAL_ADMIN_FULL_NAME) {
     const passwordHash = await hashPassword(env.INITIAL_ADMIN_PASSWORD)
