@@ -44,6 +44,20 @@ export async function updateUserStatus(id, isActive) {
   return rows[0] || null
 }
 
+export async function updateUserPassword(id, passwordHash) {
+  const { rows } = await query(
+    `
+      UPDATE app_users
+      SET password_hash = $2,
+          updated_at = NOW()
+      WHERE id = $1
+      RETURNING *
+    `,
+    [id, passwordHash],
+  )
+  return rows[0] || null
+}
+
 export async function createInvite(input) {
   const { rows } = await query(
     `

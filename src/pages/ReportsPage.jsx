@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '../App'
-import { Card, PageHeader, Table, Badge, Button } from '../components/ui'
+import { Card, PageHeader, Table, Badge, Button, SectionCard, Input, StatStrip } from '../components/ui'
 
 const REPORTS = [
   { id: 'stock_summary',  label: 'Stock Summary',      icon: '◈', desc: 'Full current stock levels across all SKUs' },
@@ -346,40 +346,43 @@ export default function ReportsPage() {
     <div>
       <PageHeader title="Reports & Export" subtitle="Analyse stock movements, performance, and reconciliation" />
 
-      {/* Report picker */}
-      <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(220px,1fr))', gap:12, marginBottom:28 }}>
-        {REPORTS.map(r => (
-          <button key={r.id} onClick={() => runReport(r.id)} style={{
-            background: activeReport===r.id ? 'rgba(0,229,160,0.08)' : '#111618',
-            border: `1px solid ${activeReport===r.id ? '#00e5a0' : '#1a2224'}`,
-            borderRadius:8, padding:'16px 18px', textAlign:'left', cursor:'pointer',
-            transition:'all 0.15s',
-          }}>
-            <div style={{ display:'flex', gap:10, alignItems:'center', marginBottom:6 }}>
-              <span style={{ fontSize:16 }}>{r.icon}</span>
-              <span style={{ fontFamily:'Syne, sans-serif', fontWeight:700, fontSize:13, color: activeReport===r.id ? '#00e5a0' : '#e0e8ea' }}>{r.label}</span>
-            </div>
-            <div style={{ fontSize:12, color:'#4a6068', lineHeight:1.4 }}>{r.desc}</div>
-          </button>
-        ))}
-      </div>
+      <SectionCard
+        eyebrow="Analytics"
+        title="Report launcher"
+        subtitle="Pick a report, apply a date range where needed, then export the exact dataset visible in the table."
+        style={{ marginBottom: 24 }}
+      >
+        <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(220px,1fr))', gap:12 }}>
+          {REPORTS.map(r => (
+            <button key={r.id} onClick={() => runReport(r.id)} style={{
+              background: activeReport===r.id ? 'rgba(43,227,180,0.08)' : 'rgba(255,255,255,0.02)',
+              border: `1px solid ${activeReport===r.id ? 'rgba(43,227,180,0.36)' : 'rgba(126, 155, 160, 0.12)'}`,
+              borderRadius:18, padding:'18px 18px', textAlign:'left', cursor:'pointer',
+              transition:'all 0.15s',
+            }}>
+              <div style={{ display:'flex', gap:10, alignItems:'center', marginBottom:8 }}>
+                <span style={{ fontSize:16 }}>{r.icon}</span>
+                <span style={{ fontFamily:'Syne, sans-serif', fontWeight:700, fontSize:15, color: activeReport===r.id ? '#2be3b4' : '#e0e8ea' }}>{r.label}</span>
+              </div>
+              <div style={{ fontSize:12, color:'#70868c', lineHeight:1.5 }}>{r.desc}</div>
+            </button>
+          ))}
+        </div>
+      </SectionCard>
 
       {activeReport && (
         <>
-          {/* Controls */}
+          <SectionCard
+            eyebrow="Execution"
+            title={currentReport?.label}
+            subtitle={needsDates ? 'This report is scoped by date range before export.' : 'This report is generated from the current live warehouse dataset.'}
+            style={{ marginBottom: 20 }}
+          >
           <div style={{ display:'flex', gap:12, marginBottom:20, flexWrap:'wrap', alignItems:'flex-end' }}>
             {needsDates && (
               <>
-                <div>
-                  <label style={{ display:'block', fontFamily:'DM Mono, monospace', fontSize:10, color:'#4a6068', letterSpacing:'0.1em', textTransform:'uppercase', marginBottom:6 }}>From</label>
-                  <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)}
-                    style={{ padding:'8px 12px', background:'#111618', border:'1px solid #1a2224', borderRadius:6, color:'#e0e8ea', fontFamily:'DM Mono, monospace', fontSize:13 }} />
-                </div>
-                <div>
-                  <label style={{ display:'block', fontFamily:'DM Mono, monospace', fontSize:10, color:'#4a6068', letterSpacing:'0.1em', textTransform:'uppercase', marginBottom:6 }}>To</label>
-                  <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)}
-                    style={{ padding:'8px 12px', background:'#111618', border:'1px solid #1a2224', borderRadius:6, color:'#e0e8ea', fontFamily:'DM Mono, monospace', fontSize:13 }} />
-                </div>
+                <Input label="From" type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} style={{ marginBottom: 0, minWidth: 180 }} />
+                <Input label="To" type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} style={{ marginBottom: 0, minWidth: 180 }} />
                 <Button size="sm" onClick={() => runReport(activeReport)} disabled={loading}>
                   {loading ? 'Running...' : '↻ Run Report'}
                 </Button>
@@ -391,6 +394,12 @@ export default function ReportsPage() {
               </Button>
             )}
           </div>
+          <StatStrip items={[
+            { label: 'Rows', value: reportData.length, accent: '#6dc6ff' },
+            { label: 'Date Filter', value: needsDates ? `${dateFrom} → ${dateTo}` : 'Live dataset', accent: '#2be3b4' },
+            { label: 'Status', value: loading ? 'Running' : 'Ready', accent: loading ? '#f5b85c' : '#2be3b4' },
+          ]} />
+          </SectionCard>
 
           <Card style={{ padding:0, overflow:'hidden' }}>
             <div style={{ padding:'14px 20px', borderBottom:'1px solid #1a2224', display:'flex', justifyContent:'space-between', alignItems:'center' }}>

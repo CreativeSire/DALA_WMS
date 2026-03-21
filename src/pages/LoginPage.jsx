@@ -98,7 +98,7 @@ export default function LoginPage() {
             <div style={authCopyStyle}>
               {mode === 'login'
                 ? 'Use your assigned role credentials to enter the Railway-backed warehouse console.'
-                : 'Enter the email tied to your account. On Railway mode, resets are admin-driven until the reset flow is implemented.'}
+                : 'Enter the email tied to your account. On Railway mode, an administrator can issue a temporary password from the Users module.'}
             </div>
           </div>
 
@@ -152,7 +152,7 @@ export default function LoginPage() {
 
           <div style={footerMetaStyle}>
             <div style={footerPillStyle}>Lagos Operations</div>
-            <div style={footerCopyStyle}>Use the current Railway domain for review: `dala-wms-production.up.railway.app`</div>
+            <div style={footerCopyStyle}>Use the current Railway domain for review: `dalawms.up.railway.app`</div>
           </div>
         </section>
       </div>

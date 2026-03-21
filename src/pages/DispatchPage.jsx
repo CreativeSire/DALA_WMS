@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '../App'
-import { Card, Button, Input, Select, Modal, Table, PageHeader, Alert, Badge } from '../components/ui'
+import { Card, Button, Input, Select, Modal, Table, PageHeader, Alert, Badge, SectionCard, StatStrip, TextArea } from '../components/ui'
 import { allocateFIFOFromBatches, getAvailableQuantity } from '../lib/inventory'
 
 export default function DispatchPage() {
@@ -208,6 +208,19 @@ export default function DispatchPage() {
 
       <Alert message={alert.message} type={alert.type} />
 
+      <SectionCard
+        eyebrow="Outbound Control"
+        title="Dispatch queue"
+        subtitle="Create dispatch notes, allocate stock FIFO, and hand loads over to security confirmation with a clean audit trail."
+        style={{ marginBottom: 20 }}
+      >
+        <StatStrip items={[
+          { label: 'Open Dispatches', value: dispatches.filter((item) => item.status === 'pending').length, accent: '#f5b85c' },
+          { label: 'Confirmed', value: dispatches.filter((item) => item.status === 'confirmed').length, accent: '#2be3b4' },
+          { label: 'Active SKUs', value: products.length, accent: '#6dc6ff' },
+        ]} />
+      </SectionCard>
+
       <Card style={{ padding: 0, overflow: 'hidden' }}>
         <Table
           headers={['Dispatch #', 'Retailer', 'Dispatched By', 'Date', 'Status', 'Action']}
@@ -288,7 +301,7 @@ export default function DispatchPage() {
               </Button>
             </div>
 
-            <Input label="Notes" value={dispatchNotes} onChange={e => setDispatchNotes(e.target.value)} placeholder="Optional notes..." />
+            <TextArea label="Notes" value={dispatchNotes} onChange={e => setDispatchNotes(e.target.value)} placeholder="Driver, vehicle, route, or retailer handling notes..." rows={3} />
 
             <div style={{ background: 'rgba(255,181,71,0.06)', border: '1px solid rgba(255,181,71,0.15)', borderRadius: 6, padding: 12, marginBottom: 20, fontSize: 12, color: '#ffb547' }}>
               ⚠ Dispatch will be in PENDING status until confirmed by security at gate.

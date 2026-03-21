@@ -8,16 +8,20 @@ Express + Postgres backend for replacing Supabase in DALA WMS.
 - `POST /auth/login`
 - `GET /auth/me`
 - `POST /auth/logout`
+- `POST /auth/complete-invite`
+- `POST /auth/change-password`
 - `GET /api/users`
 - `POST /api/users`
 - `POST /api/users/invite`
 - `PATCH /api/users/:id/status`
+- `POST /api/users/:id/reset-password`
 - `GET /api/partners`
 - `POST /api/partners`
 - `PATCH /api/partners/:id`
 - `GET /api/products`
 - `POST /api/products`
 - `PATCH /api/products/:id`
+- inventory, GRN, dispatch, casualties, counts, and report routes under `/api`
 
 ## Environment
 
@@ -39,6 +43,7 @@ Optional initial admin seed:
 cd server
 npm install
 npm run db:bootstrap
+npm run db:seed-demo
 npm run dev
 ```
 
@@ -58,6 +63,7 @@ Recommended first run:
 cd server
 npm install
 npm run db:bootstrap
+npm run db:seed-demo
 ```
 
 If you seed the initial admin in production, rotate that password immediately after first login.

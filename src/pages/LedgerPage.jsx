@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '../App'
-import { Card, PageHeader, Table, Badge, Button, Input } from '../components/ui'
+import { Card, PageHeader, Table, Badge, Button, Input, SectionCard, SegmentedControl, StatStrip } from '../components/ui'
 
 export default function LedgerPage() {
   const { supabase, api, authMode } = useAuth()
@@ -76,7 +76,8 @@ export default function LedgerPage() {
   )
 
   const typeColor = { grn: '#00e5a0', dispatch: '#4fc3f7', adjustment: '#ffb547', write_off: '#ff6b35', transfer: '#a78bfa' }
-  const statusColor = { active: '#00e5a0', near_expiry: '#ffb547', expired: '#ff6b35', depleted: '#4a6068' }
+  const currentRows = filteredStock.length
+  const movementRows = filteredMovements.length
 
   return (
     <div>
@@ -90,34 +91,46 @@ export default function LedgerPage() {
         }
       />
 
-      {/* View toggle */}
-      <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
-        {[['stock', 'Current Stock'], ['movements', 'Movement History']].map(([v, label]) => (
-          <button key={v} onClick={() => setView(v)} style={{
-            padding: '8px 18px', borderRadius: 6, border: '1px solid',
-            borderColor: view === v ? '#00e5a0' : '#1a2224',
-            background: view === v ? 'rgba(0,229,160,0.08)' : 'transparent',
-            color: view === v ? '#00e5a0' : '#5a7880',
-            fontFamily: 'DM Mono, monospace', fontSize: 11, letterSpacing: '0.08em',
-            cursor: 'pointer', textTransform: 'uppercase',
-          }}>
-            {label}
-          </button>
-        ))}
-      </div>
-
-      {/* Search */}
-      <div style={{ marginBottom: 16 }}>
-        <input
-          value={search} onChange={e => setSearch(e.target.value)}
-          placeholder={view === 'stock' ? 'Search by product name, SKU, or brand partner...' : 'Search by product, reference, or retailer...'}
-          style={{
-            width: '100%', maxWidth: 420, padding: '10px 14px',
-            background: '#111618', border: '1px solid #1a2224', borderRadius: 6,
-            color: '#e0e8ea', fontFamily: 'DM Sans, sans-serif', fontSize: 13,
-          }}
-        />
-      </div>
+      <SectionCard
+        eyebrow="Traceability"
+        title={view === 'stock' ? 'Live stock positions' : 'Movement audit trail'}
+        subtitle={view === 'stock'
+          ? 'Use this view for what is physically available by SKU, partner, and batch health.'
+          : 'Use this ledger for who moved what, when, and under which reference number.'}
+        action={(
+          <SegmentedControl
+            value={view}
+            onChange={setView}
+            options={[
+              { value: 'stock', label: 'Current Stock' },
+              { value: 'movements', label: 'Movement History' },
+            ]}
+          />
+        )}
+        style={{ marginBottom: 18 }}
+      >
+        <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 0.8fr', gap: 16 }}>
+          <Input
+            label="Search"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder={view === 'stock' ? 'Search by product name, SKU, or brand partner...' : 'Search by product, reference, or retailer...'}
+            style={{ marginBottom: 0 }}
+          />
+          <StatStrip items={view === 'stock'
+            ? [
+                { label: 'Visible Rows', value: currentRows, accent: '#6dc6ff' },
+                { label: 'Low Stock', value: filteredStock.filter((item) => item.reorder_threshold > 0 && item.total_stock <= item.reorder_threshold).length, accent: '#f5b85c' },
+                { label: 'Expiry Flags', value: filteredStock.filter((item) => item.near_expiry_batches > 0 || item.expired_batches > 0).length, accent: '#ff8552' },
+              ]
+            : [
+                { label: 'Visible Rows', value: movementRows, accent: '#6dc6ff' },
+                { label: 'Dispatches', value: filteredMovements.filter((item) => item.movement_type === 'dispatch').length, accent: '#4fc3f7' },
+                { label: 'Adjustments', value: filteredMovements.filter((item) => item.movement_type === 'adjustment' || item.movement_type === 'write_off').length, accent: '#ff8552' },
+              ]}
+          />
+        </div>
+      </SectionCard>
 
       {loading ? (
         <div style={{ color: '#4a6068', fontFamily: 'DM Mono, monospace', fontSize: 12, padding: 24 }}>Loading...</div>

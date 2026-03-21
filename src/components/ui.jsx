@@ -114,6 +114,22 @@ export function Input({ label, value, onChange, type = 'text', placeholder, requ
   )
 }
 
+export function TextArea({ label, value, onChange, placeholder, required, rows = 4, style = {} }) {
+  return (
+    <div style={{ marginBottom: 16, ...style }}>
+      {label && <label style={labelStyle}>{label}{required && ' *'}</label>}
+      <textarea
+        value={value}
+        onChange={onChange}
+        placeholder={placeholder}
+        required={required}
+        rows={rows}
+        style={{ ...inputStyle, resize: 'vertical', minHeight: rows * 24 }}
+      />
+    </div>
+  )
+}
+
 export function Select({ label, value, onChange, children, required, style = {} }) {
   return (
     <div style={{ marginBottom: 16, ...style }}>
@@ -257,6 +273,99 @@ export function PageHeader({ title, subtitle, action }) {
         {subtitle && <div style={{ fontSize: 14, color: '#72868d', marginTop: 6, maxWidth: 760 }}>{subtitle}</div>}
       </div>
       {action && <div>{action}</div>}
+    </div>
+  )
+}
+
+export function SectionCard({ eyebrow, title, subtitle, action, children, style = {} }) {
+  return (
+    <Card style={style}>
+      {(eyebrow || title || subtitle || action) && (
+        <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16, alignItems: 'flex-start', flexWrap: 'wrap', marginBottom: 18 }}>
+          <div>
+            {eyebrow && <div style={{ ...labelStyle, marginBottom: 10 }}>{eyebrow}</div>}
+            {title && <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 800, fontSize: 22, color: '#f4fbf8', letterSpacing: '-0.03em' }}>{title}</div>}
+            {subtitle && <div style={{ marginTop: 6, color: '#7f969d', fontSize: 13, lineHeight: 1.6 }}>{subtitle}</div>}
+          </div>
+          {action && <div>{action}</div>}
+        </div>
+      )}
+      {children}
+    </Card>
+  )
+}
+
+export function StatStrip({ items }) {
+  return (
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(165px, 1fr))', gap: 12 }}>
+      {items.map((item) => (
+        <div key={item.label} style={{
+          borderRadius: 18,
+          border: '1px solid rgba(126, 155, 160, 0.1)',
+          background: 'rgba(255,255,255,0.03)',
+          padding: 18,
+          position: 'relative',
+          overflow: 'hidden',
+        }}>
+          <div style={{ position: 'absolute', inset: 0, background: `radial-gradient(circle at top right, ${item.accent || '#2be3b4'}1f 0%, transparent 36%)` }} />
+          <div style={labelStyle}>{item.label}</div>
+          <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 800, fontSize: 28, color: '#f5fbf8', lineHeight: 1 }}>{item.value}</div>
+          {item.sub && <div style={{ marginTop: 7, fontSize: 12, color: '#6f858d' }}>{item.sub}</div>}
+        </div>
+      ))}
+    </div>
+  )
+}
+
+export function SegmentedControl({ value, onChange, options, style = {} }) {
+  return (
+    <div style={{
+      display: 'inline-flex',
+      gap: 8,
+      padding: 6,
+      borderRadius: 16,
+      border: '1px solid rgba(126, 155, 160, 0.12)',
+      background: 'rgba(255,255,255,0.03)',
+      ...style,
+    }}>
+      {options.map((option) => {
+        const active = value === option.value
+        return (
+          <button
+            key={option.value}
+            type="button"
+            onClick={() => onChange(option.value)}
+            style={{
+              border: 'none',
+              borderRadius: 12,
+              padding: '10px 14px',
+              background: active ? 'linear-gradient(135deg, rgba(43,227,180,0.96) 0%, rgba(123,255,219,0.84) 100%)' : 'transparent',
+              color: active ? '#04110f' : '#8ca1a8',
+              cursor: 'pointer',
+              fontFamily: 'Syne, sans-serif',
+              fontWeight: 700,
+              fontSize: 13,
+            }}
+          >
+            {option.label}
+          </button>
+        )
+      })}
+    </div>
+  )
+}
+
+export function EmptyState({ title, copy }) {
+  return (
+    <div style={{
+      padding: '34px 20px',
+      textAlign: 'center',
+      borderRadius: 18,
+      border: '1px dashed rgba(126, 155, 160, 0.16)',
+      background: 'rgba(255,255,255,0.02)',
+    }}>
+      <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 20, color: '#f1f8f6' }}>{title}</div>
+      <div style={{ marginTop: 8, color: '#7b9298', fontSize: 13, lineHeight: 1.6 }}>{copy}</div>
     </div>
   )
 }

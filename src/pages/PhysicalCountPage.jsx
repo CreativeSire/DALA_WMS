@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '../App'
-import { Card, PageHeader, Table, Badge, Button, Alert, Modal, Input } from '../components/ui'
+import { Card, PageHeader, Table, Badge, Button, Alert, Modal, Input, SectionCard, StatStrip, SegmentedControl, TextArea } from '../components/ui'
 import { planCountAdjustment } from '../lib/inventory'
 
 const STATUS_COLOR = { open:'#4fc3f7', submitted:'#ffb547', approved:'#00e5a0', closed:'#4a6068' }
@@ -324,36 +324,38 @@ export default function PhysicalCountPage() {
 
         <Alert message={alert.message} type={alert.type} />
 
-        {/* Stats */}
-        <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(140px,1fr))', gap:12, marginBottom:20 }}>
-          {[
+        <SectionCard
+          eyebrow="Count Session"
+          title="Count progress"
+          subtitle="Track completion, isolate variances quickly, and only approve once notes explain the deltas."
+          style={{ marginBottom: 18 }}
+        >
+          <StatStrip items={[
             { label:'Total SKUs', value: countLines.length, accent:'#4fc3f7' },
             { label:'Counted', value:`${countedLines}/${countLines.length}`, accent:'#00e5a0' },
             { label:'With Variance', value: totalVariance, accent: totalVariance > 0 ? '#ffb547' : '#4a6068' },
-          ].map((s,i) => (
-            <div key={i} style={{ background:'#111618', border:'1px solid #1a2224', borderRadius:8, padding:'14px 16px', position:'relative', overflow:'hidden' }}>
-              <div style={{ position:'absolute', top:0, left:0, right:0, height:2, background:s.accent }} />
-              <div style={{ fontFamily:'DM Mono, monospace', fontSize:10, color:'#4a6068', textTransform:'uppercase', letterSpacing:'0.1em', marginBottom:6 }}>{s.label}</div>
-              <div style={{ fontFamily:'Syne, sans-serif', fontWeight:800, fontSize:22, color:'#e0e8ea' }}>{s.value}</div>
-            </div>
-          ))}
-        </div>
+          ]} />
+        </SectionCard>
 
-        {/* Filters */}
-        <div style={{ display:'flex', gap:12, marginBottom:16, flexWrap:'wrap', alignItems:'center' }}>
-          <input value={search} onChange={e => setSearch(e.target.value)}
-            placeholder="Search product, SKU, brand partner..."
-            style={{ padding:'8px 13px', background:'#111618', border:'1px solid #1a2224', borderRadius:6, color:'#e0e8ea', fontFamily:'DM Sans, sans-serif', fontSize:13, minWidth:240 }} />
-          <button onClick={() => setFilterVariance(!filterVariance)} style={{
-            padding:'7px 14px', borderRadius:5, border:'1px solid',
-            borderColor: filterVariance ? '#ffb547' : '#1a2224',
-            background: filterVariance ? 'rgba(255,181,71,0.08)' : 'transparent',
-            color: filterVariance ? '#ffb547' : '#5a7880',
-            fontFamily:'DM Mono, monospace', fontSize:11, letterSpacing:'0.08em', cursor:'pointer', textTransform:'uppercase',
-          }}>
-            {filterVariance ? '✓ Variances Only' : 'Show Variances Only'}
-          </button>
-        </div>
+        <SectionCard style={{ marginBottom: 16 }}>
+          <div style={{ display:'flex', gap:12, marginBottom:0, flexWrap:'wrap', alignItems:'flex-end' }}>
+            <Input
+              label="Search"
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder="Search product, SKU, brand partner..."
+              style={{ marginBottom: 0, minWidth: 240, flex: '1 1 260px' }}
+            />
+            <SegmentedControl
+              value={filterVariance ? 'variance' : 'all'}
+              onChange={(next) => setFilterVariance(next === 'variance')}
+              options={[
+                { value: 'all', label: 'All Lines' },
+                { value: 'variance', label: 'Variances Only' },
+              ]}
+            />
+          </div>
+        </SectionCard>
 
         <Card style={{ padding:0, overflow:'hidden' }}>
           <div style={{ overflowX:'auto' }}>
@@ -470,7 +472,7 @@ export default function PhysicalCountPage() {
             This will snapshot current system stock quantities for all active SKUs. Your team then enters physical counts against each one.
           </p>
           <form onSubmit={createSession}>
-            <Input label="Notes (optional)" value={newNotes} onChange={e => setNewNotes(e.target.value)} placeholder="e.g. Monthly count — March 2026" />
+            <TextArea label="Notes (optional)" value={newNotes} onChange={e => setNewNotes(e.target.value)} placeholder="e.g. Monthly count — March 2026, fast movers first, cold chain excluded" rows={3} />
             <div style={{ display:'flex', gap:12, justifyContent:'flex-end', marginTop:8 }}>
               <Button type="button" variant="ghost" onClick={() => setShowNewModal(false)}>Cancel</Button>
               <Button type="submit" disabled={saving}>{saving ? 'Opening...' : 'Open Count Session →'}</Button>

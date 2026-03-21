@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useAuth } from '../App'
+import { Alert, Button, Input, Modal } from './ui'
 
 const NAV = [
   { section: 'OVERVIEW' },
@@ -32,10 +33,49 @@ const ROLE_COLORS = {
 }
 
 export default function Layout({ children, page, setPage }) {
-  const { profile, logout } = useAuth()
+  const { profile, logout, api, authMode } = useAuth()
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [showPasswordModal, setShowPasswordModal] = useState(false)
+  const [passwordForm, setPasswordForm] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' })
+  const [passwordAlert, setPasswordAlert] = useState({ message: '', type: 'success' })
+  const [passwordLoading, setPasswordLoading] = useState(false)
   const currentLabel = NAV.find((item) => item.id === page)?.label || 'Dashboard'
   const visibleNav = NAV.filter((item) => !item.roles || item.roles.includes(profile?.role))
+
+  async function handlePasswordChange(event) {
+    event.preventDefault()
+    setPasswordAlert({ message: '', type: 'success' })
+
+    if (authMode !== 'api') {
+      setPasswordAlert({ message: 'Self-service password change is only enabled on the Railway backend.', type: 'warn' })
+      return
+    }
+
+    if (passwordForm.newPassword.length < 8) {
+      setPasswordAlert({ message: 'New password must be at least 8 characters.', type: 'error' })
+      return
+    }
+
+    if (passwordForm.newPassword !== passwordForm.confirmPassword) {
+      setPasswordAlert({ message: 'New password and confirmation do not match.', type: 'error' })
+      return
+    }
+
+    setPasswordLoading(true)
+    try {
+      const response = await api.post('/auth/change-password', {
+        currentPassword: passwordForm.currentPassword,
+        newPassword: passwordForm.newPassword,
+      })
+      setPasswordAlert({ message: response.message, type: 'success' })
+      setPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' })
+      setTimeout(() => setShowPasswordModal(false), 900)
+    } catch (error) {
+      setPasswordAlert({ message: error.message, type: 'error' })
+    } finally {
+      setPasswordLoading(false)
+    }
+  }
 
   return (
     <div style={shellStyle}>
@@ -121,6 +161,7 @@ export default function Layout({ children, page, setPage }) {
             {profile?.role?.replace('_', ' ')}
           </div>
           <button onClick={() => logout()} style={logoutButtonStyle}>Sign Out</button>
+          <button onClick={() => setShowPasswordModal(true)} style={secondaryButtonStyle}>Change Password</button>
         </div>
       </aside>
 
@@ -157,6 +198,25 @@ export default function Layout({ children, page, setPage }) {
           </div>
         </main>
       </div>
+
+      {showPasswordModal && (
+        <Modal title="Change Password" onClose={() => {
+          setShowPasswordModal(false)
+          setPasswordAlert({ message: '', type: 'success' })
+          setPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' })
+        }}>
+          <Alert message={passwordAlert.message} type={passwordAlert.type} />
+          <form onSubmit={handlePasswordChange}>
+            <Input label="Current Password" type="password" value={passwordForm.currentPassword} onChange={(event) => setPasswordForm((prev) => ({ ...prev, currentPassword: event.target.value }))} required />
+            <Input label="New Password" type="password" value={passwordForm.newPassword} onChange={(event) => setPasswordForm((prev) => ({ ...prev, newPassword: event.target.value }))} required />
+            <Input label="Confirm New Password" type="password" value={passwordForm.confirmPassword} onChange={(event) => setPasswordForm((prev) => ({ ...prev, confirmPassword: event.target.value }))} required />
+            <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end', marginTop: 8 }}>
+              <Button type="button" variant="ghost" onClick={() => setShowPasswordModal(false)}>Cancel</Button>
+              <Button type="submit" disabled={passwordLoading}>{passwordLoading ? 'Updating...' : 'Update Password'}</Button>
+            </div>
+          </form>
+        </Modal>
+      )}
     </div>
   )
 }
@@ -331,6 +391,21 @@ const logoutButtonStyle = {
   border: '1px solid rgba(126, 155, 160, 0.14)',
   background: 'rgba(8, 15, 17, 0.8)',
   color: '#8aa0a8',
+  cursor: 'pointer',
+  fontFamily: 'DM Mono, monospace',
+  fontSize: 11,
+  letterSpacing: '0.16em',
+  textTransform: 'uppercase',
+}
+
+const secondaryButtonStyle = {
+  width: '100%',
+  marginTop: 10,
+  padding: '11px 0',
+  borderRadius: 12,
+  border: '1px solid rgba(43, 227, 180, 0.16)',
+  background: 'rgba(10, 30, 24, 0.4)',
+  color: '#9af2d1',
   cursor: 'pointer',
   fontFamily: 'DM Mono, monospace',
   fontSize: 11,

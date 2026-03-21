@@ -1,6 +1,7 @@
 import { useState, useEffect, createContext, useContext } from 'react'
 import { createClient } from '@supabase/supabase-js'
 import LoginPage from './pages/LoginPage'
+import CompleteInvitePage from './pages/CompleteInvitePage'
 import Dashboard from './pages/Dashboard'
 import GRNPage from './pages/GRNPage'
 import DispatchPage from './pages/DispatchPage'
@@ -30,6 +31,7 @@ export const useAuth = () => useContext(AuthContext)
 
 export default function App() {
   const previewMode = globalThis.__DALA_PREVIEW__ || new URLSearchParams(window.location.search).get('preview')
+  const inviteMode = window.location.pathname === '/complete-invite'
   const [session, setSession] = useState(null)
   const [profile, setProfile] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -109,7 +111,7 @@ export default function App() {
 
   if (!session) return (
     <AuthContext.Provider value={{ session, profile, supabase, api, authMode: hasBackendApi ? 'api' : 'supabase', refreshAuth, logout }}>
-      <LoginPage />
+      {inviteMode && hasBackendApi ? <CompleteInvitePage /> : <LoginPage />}
     </AuthContext.Provider>
   )
 

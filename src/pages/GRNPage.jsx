@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '../App'
-import { Card, Button, Input, Select, Modal, Table, PageHeader, Alert, Badge } from '../components/ui'
+import { Card, Button, Input, Select, Modal, Table, PageHeader, Alert, Badge, SectionCard, StatStrip, TextArea } from '../components/ui'
 
 export default function GRNPage() {
   const { supabase, api, authMode, profile } = useAuth()
@@ -150,6 +150,19 @@ export default function GRNPage() {
 
       <Alert message={alert.message} type={alert.type} />
 
+      <SectionCard
+        eyebrow="Inbound Control"
+        title="Goods receipt desk"
+        subtitle="Capture each inbound load against the correct partner, SKU, batch, and expiry profile so downstream FIFO and reporting stay clean."
+        style={{ marginBottom: 20 }}
+      >
+        <StatStrip items={[
+          { label: 'Recent GRNs', value: grns.length, accent: '#6dc6ff' },
+          { label: 'Partners Live', value: partners.length, accent: '#2be3b4' },
+          { label: 'SKUs Ready', value: products.length, accent: '#f5b85c' },
+        ]} />
+      </SectionCard>
+
       <Card style={{ padding: 0, overflow: 'hidden' }}>
         <Table
           headers={['GRN Number', 'Brand Partner', 'Items', 'Received By', 'Date', 'Ref']}
@@ -216,7 +229,7 @@ export default function GRNPage() {
               </Button>
             </div>
 
-            <Input label="Notes" value={notes} onChange={e => setNotes(e.target.value)} placeholder="Optional notes..." />
+            <TextArea label="Notes" value={notes} onChange={e => setNotes(e.target.value)} placeholder="Optional notes for receiving, damages, shortages, or documentation checks..." rows={3} />
 
             <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end', marginTop: 8 }}>
               <Button type="button" variant="ghost" onClick={() => { setShowModal(false); resetForm() }}>Cancel</Button>

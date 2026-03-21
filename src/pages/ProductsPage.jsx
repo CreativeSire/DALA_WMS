@@ -1,7 +1,7 @@
 // ── Products Page ────────────────────────────────────────────
 import { useState, useEffect } from 'react'
 import { useAuth } from '../App'
-import { Card, Button, Input, Select, Modal, Table, PageHeader, Alert, Badge } from '../components/ui'
+import { Card, Button, Input, Select, Modal, Table, PageHeader, Alert, Badge, SectionCard, StatStrip } from '../components/ui'
 
 export function ProductsPage() {
   const { supabase, api, authMode } = useAuth()
@@ -230,6 +230,20 @@ export function UsersPage() {
     loadUsers()
   }
 
+  async function resetPassword(user) {
+    if (authMode !== 'api') {
+      showAlert('Password reset from the browser is only available on the Railway backend.', 'warn')
+      return
+    }
+
+    try {
+      const response = await api.post(`/api/users/${user.id}/reset-password`, {})
+      showAlert(`${response.message} Temporary password: ${response.temporary_password}`, 'success')
+    } catch (error) {
+      showAlert(`Error: ${error.message}`, 'error')
+    }
+  }
+
   async function handleUserAction(e) {
     e.preventDefault()
     setLoading(true)
@@ -284,23 +298,37 @@ export function UsersPage() {
       <PageHeader title="User Management" subtitle="Manage system access and roles" action={<Button onClick={() => setShowModal(true)}>+ Add User</Button>} />
       <Alert message={alert.message} type={alert.type} />
 
-      <div style={{ background: 'rgba(255,181,71,0.05)', border: '1px solid rgba(255,181,71,0.15)', borderRadius: 6, padding: '12px 16px', marginBottom: 20, fontSize: 13, color: '#ffb547' }}>
-        {authMode === 'api'
-          ? 'User onboarding is running through the Railway backend. Invite currently returns a completion URL/token for distribution until email delivery is added.'
-          : 'User onboarding now uses the server-side `user-admin` Edge Function. Use Invite to send a setup email, or Create to issue an immediate account with a temporary password.'}
-      </div>
+      <SectionCard
+        eyebrow="Identity & Access"
+        title="Admin controls"
+        subtitle={authMode === 'api'
+          ? 'Invites now complete inside the Railway app. Direct reset issues a temporary password for controlled handover.'
+          : 'Supabase fallback mode is still available, but production identity flows should use the Railway backend.'}
+        style={{ marginBottom: 20 }}
+      >
+        <StatStrip items={[
+          { label: 'Total Users', value: users.length, accent: '#6dc6ff' },
+          { label: 'Active Users', value: users.filter((user) => user.is_active).length, accent: '#2be3b4' },
+          { label: 'Admins', value: users.filter((user) => user.role === 'admin').length, accent: '#ff8552' },
+        ]} />
+      </SectionCard>
 
       <Card style={{ padding: 0, overflow: 'hidden' }}>
         <Table
-          headers={['Name', 'Email', 'Role', 'Status', 'Action']}
+          headers={['Name', 'Email', 'Role', 'Status', 'Actions']}
           rows={users.map(u => [
             <span style={{ fontWeight: 500, color: '#e0e8ea' }}>{u.full_name}</span>,
             <span style={{ fontFamily: 'DM Mono, monospace', fontSize: 12, color: '#4a6068' }}>{u.email}</span>,
             <Badge color={ROLE_COLORS[u.role] || '#4a6068'}>{u.role?.replace('_', ' ')}</Badge>,
             <Badge color={u.is_active ? '#00e5a0' : '#4a6068'}>{u.is_active ? 'Active' : 'Inactive'}</Badge>,
-            <Button size="sm" variant={u.is_active ? 'danger' : 'ghost'} onClick={() => toggleActive(u)}>
-              {u.is_active ? 'Deactivate' : 'Activate'}
-            </Button>,
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              <Button size="sm" variant="ghost" onClick={() => resetPassword(u)}>
+                Reset Password
+              </Button>
+              <Button size="sm" variant={u.is_active ? 'danger' : 'secondary'} onClick={() => toggleActive(u)}>
+                {u.is_active ? 'Deactivate' : 'Activate'}
+              </Button>
+            </div>,
           ])}
           empty="No users found."
         />

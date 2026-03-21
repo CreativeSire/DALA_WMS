@@ -8,7 +8,8 @@
     "build": "vite build",
     "preview": "vite preview",
     "test": "vitest run",
-    "deploy:user-admin": "powershell -ExecutionPolicy Bypass -File .\\scripts\\deploy-user-admin.ps1"
+    "deploy:user-admin": "powershell -ExecutionPolicy Bypass -File .\\scripts\\deploy-user-admin.ps1",
+    "server:seed-demo": "npm --prefix server run db:seed-demo"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.39.0",

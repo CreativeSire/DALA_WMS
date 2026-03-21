@@ -7,6 +7,7 @@
     "dev": "node --watch src/server.js",
     "start": "node src/server.js",
     "db:bootstrap": "node src/scripts/bootstrap.js",
+    "db:seed-demo": "node src/scripts/seed-demo.js",
     "test": "vitest run"
   },
   "dependencies": {
