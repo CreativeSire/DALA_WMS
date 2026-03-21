@@ -226,6 +226,10 @@ export async function generateReference(sequenceName, prefix, digits) {
   return `${prefix}-${stamp}-${seq}`
 }
 
+function isUniqueReferenceConflict(error, columnName) {
+  return error?.code === '23505' && typeof error?.detail === 'string' && error.detail.includes(`(${columnName})=`)
+}
+
 export async function listGrns() {
   const { rows } = await query(
     `
@@ -250,16 +254,27 @@ export async function listGrns() {
 
 export async function createGrn({ userId, partnerId, deliveryRef, notes, lines }) {
   return withTransaction(async (client) => {
-    const grnNumber = await generateReference('grn_seq', 'GRN', 4)
-    const grnResult = await client.query(
-      `
-        INSERT INTO grn_records (grn_number, brand_partner_id, received_by, delivery_note_ref, notes, total_items)
-        VALUES ($1, $2, $3, NULLIF($4, ''), NULLIF($5, ''), $6)
-        RETURNING *
-      `,
-      [grnNumber, partnerId, userId, deliveryRef, notes, lines.length],
-    )
-    const grn = grnResult.rows[0]
+    let grn
+    let grnNumber
+    for (let attempt = 0; attempt < 20; attempt += 1) {
+      grnNumber = await generateReference('grn_seq', 'GRN', 4)
+      try {
+        const grnResult = await client.query(
+          `
+            INSERT INTO grn_records (grn_number, brand_partner_id, received_by, delivery_note_ref, notes, total_items)
+            VALUES ($1, $2, $3, NULLIF($4, ''), NULLIF($5, ''), $6)
+            RETURNING *
+          `,
+          [grnNumber, partnerId, userId, deliveryRef, notes, lines.length],
+        )
+        grn = grnResult.rows[0]
+        break
+      } catch (error) {
+        if (!isUniqueReferenceConflict(error, 'grn_number') || attempt === 19) {
+          throw error
+        }
+      }
+    }
 
     for (const line of lines) {
       const qty = Number(line.quantity) * Number(line.unitFraction || 1)
@@ -369,23 +384,34 @@ export async function listDispatches() {
 export async function createDispatch({ userId, retailerName, retailerAddress, notes, lines }) {
   return withTransaction(async (client) => {
     await refreshBatchStatuses((text, params) => client.query(text, params))
-    const dispatchNumber = await generateReference('dispatch_seq', 'DSP', 4)
-    const dispatchResult = await client.query(
-      `
-        INSERT INTO dispatch_notes (
-          dispatch_number,
-          retailer_name,
-          retailer_address,
-          dispatched_by,
-          notes,
-          status
+    let dispatch
+    let dispatchNumber
+    for (let attempt = 0; attempt < 20; attempt += 1) {
+      dispatchNumber = await generateReference('dispatch_seq', 'DSP', 4)
+      try {
+        const dispatchResult = await client.query(
+          `
+            INSERT INTO dispatch_notes (
+              dispatch_number,
+              retailer_name,
+              retailer_address,
+              dispatched_by,
+              notes,
+              status
+            )
+            VALUES ($1, $2, NULLIF($3, ''), $4, NULLIF($5, ''), 'pending')
+            RETURNING *
+          `,
+          [dispatchNumber, retailerName, retailerAddress, userId, notes],
         )
-        VALUES ($1, $2, NULLIF($3, ''), $4, NULLIF($5, ''), 'pending')
-        RETURNING *
-      `,
-      [dispatchNumber, retailerName, retailerAddress, userId, notes],
-    )
-    const dispatch = dispatchResult.rows[0]
+        dispatch = dispatchResult.rows[0]
+        break
+      } catch (error) {
+        if (!isUniqueReferenceConflict(error, 'dispatch_number') || attempt === 19) {
+          throw error
+        }
+      }
+    }
 
     for (const line of lines) {
       const requestedQty = Number(line.quantity) * Number(line.unitFraction || 1)
@@ -691,16 +717,27 @@ export async function listCountSessions() {
 
 export async function createCountSession({ userId, notes }) {
   return withTransaction(async (client) => {
-    const sessionRef = await generateReference('count_seq', 'CNT', 3)
-    const sessionResult = await client.query(
-      `
-        INSERT INTO count_sessions (session_ref, status, notes, opened_by)
-        VALUES ($1, 'open', NULLIF($2, ''), $3)
-        RETURNING *
-      `,
-      [sessionRef, notes, userId],
-    )
-    const session = sessionResult.rows[0]
+    let session
+    let sessionRef
+    for (let attempt = 0; attempt < 20; attempt += 1) {
+      sessionRef = await generateReference('count_seq', 'CNT', 3)
+      try {
+        const sessionResult = await client.query(
+          `
+            INSERT INTO count_sessions (session_ref, status, notes, opened_by)
+            VALUES ($1, 'open', NULLIF($2, ''), $3)
+            RETURNING *
+          `,
+          [sessionRef, notes, userId],
+        )
+        session = sessionResult.rows[0]
+        break
+      } catch (error) {
+        if (!isUniqueReferenceConflict(error, 'session_ref') || attempt === 19) {
+          throw error
+        }
+      }
+    }
     const stock = await getCurrentStock()
 
     for (const row of stock) {
