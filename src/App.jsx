@@ -14,11 +14,15 @@ import ReportsPage from './pages/ReportsPage'
 import HowItWorksPage from './pages/HowItWorksPage'
 import { ProductsPage, BrandPartnersPage, UsersPage } from './pages/ProductsPage'
 import Layout from './components/Layout'
+import { createApiClient } from './lib/apiClient'
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
+const apiBaseUrl = import.meta.env.VITE_API_BASE_URL
+const hasBackendApi = Boolean(apiBaseUrl)
 const hasSupabaseConfig = Boolean(supabaseUrl && supabaseAnonKey)
 export const supabase = hasSupabaseConfig ? createClient(supabaseUrl, supabaseAnonKey) : null
+export const api = hasBackendApi ? createApiClient(apiBaseUrl) : null
 
 export const AuthContext = createContext(null)
 export const useAuth = () => useContext(AuthContext)
@@ -28,17 +32,22 @@ export default function App() {
   const [session, setSession] = useState(null)
   const [profile, setProfile] = useState(null)
   const [loading, setLoading] = useState(true)
-  const [page, setPage] = useState('dashboard')
+  const [page, setPage] = useState(hasBackendApi && !hasSupabaseConfig ? 'how-it-works' : 'dashboard')
 
   if (previewMode === 'manual') {
     return <HowItWorksPage />
   }
 
-  if (!hasSupabaseConfig) {
+  if (!hasSupabaseConfig && !hasBackendApi) {
     return <DeploymentSetupPage />
   }
 
   useEffect(() => {
+    if (hasBackendApi) {
+      refreshAuth()
+      return undefined
+    }
+
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session)
       if (session) fetchProfile(session.user.id)
@@ -52,10 +61,45 @@ export default function App() {
     return () => subscription.unsubscribe()
   }, [])
 
+  async function refreshAuth() {
+    if (hasBackendApi) {
+      try {
+        const data = await api.get('/auth/me')
+        setProfile(data.user)
+        setSession(data.user ? { user: data.user } : null)
+      } catch (_error) {
+        setProfile(null)
+        setSession(null)
+      } finally {
+        setLoading(false)
+      }
+      return
+    }
+
+    const { data: { session } } = await supabase.auth.getSession()
+    setSession(session)
+    if (session) await fetchProfile(session.user.id)
+    else setLoading(false)
+  }
+
   async function fetchProfile(userId) {
     const { data } = await supabase.from('profiles').select('*').eq('id', userId).single()
     setProfile(data)
     setLoading(false)
+  }
+
+  async function logout() {
+    if (hasBackendApi) {
+      try {
+        await api.post('/auth/logout')
+      } finally {
+        setSession(null)
+        setProfile(null)
+      }
+      return
+    }
+
+    await supabase.auth.signOut()
   }
 
   if (loading) return (
@@ -65,7 +109,7 @@ export default function App() {
   )
 
   if (!session) return (
-    <AuthContext.Provider value={{ session, profile, supabase }}>
+    <AuthContext.Provider value={{ session, profile, supabase, api, authMode: hasBackendApi ? 'api' : 'supabase', refreshAuth, logout }}>
       <LoginPage />
     </AuthContext.Provider>
   )
@@ -75,20 +119,20 @@ export default function App() {
   const renderPage = () => {
     switch (page) {
       // ── Core ──────────────────────────────────────────────
-      case 'dashboard':    return <Dashboard setPage={setPage} />
+      case 'dashboard':    return hasBackendApi && !hasSupabaseConfig ? <BackendMigrationPage page="Dashboard" /> : <Dashboard setPage={setPage} />
       case 'how-it-works': return <HowItWorksPage />
       // ── Phase 1 — Stock ───────────────────────────────────
-      case 'grn':          return can(['admin','warehouse_manager']) ? <GRNPage /> : <AccessDenied />
-      case 'dispatch':     return can(['admin','operations','warehouse_manager','security']) ? <DispatchPage /> : <AccessDenied />
-      case 'ledger':       return <LedgerPage />
+      case 'grn':          return hasBackendApi && !hasSupabaseConfig ? <BackendMigrationPage page="Stock Intake (GRN)" /> : can(['admin','warehouse_manager']) ? <GRNPage /> : <AccessDenied />
+      case 'dispatch':     return hasBackendApi && !hasSupabaseConfig ? <BackendMigrationPage page="Dispatch" /> : can(['admin','operations','warehouse_manager','security']) ? <DispatchPage /> : <AccessDenied />
+      case 'ledger':       return hasBackendApi && !hasSupabaseConfig ? <BackendMigrationPage page="Ledger" /> : <LedgerPage />
       // ── Phase 2 — Intelligence ────────────────────────────
-      case 'expiry':       return can(['admin','warehouse_manager','operations','finance']) ? <ExpiryPage /> : <AccessDenied />
-      case 'casualties':   return can(['admin','warehouse_manager','operations']) ? <CasualtyPage /> : <AccessDenied />
-      case 'reorder':      return can(['admin','warehouse_manager','operations','finance']) ? <ReorderPage /> : <AccessDenied />
-      case 'performance':  return can(['admin','operations','finance']) ? <PartnerPerformancePage /> : <AccessDenied />
+      case 'expiry':       return hasBackendApi && !hasSupabaseConfig ? <BackendMigrationPage page="Expiry Tracking" /> : can(['admin','warehouse_manager','operations','finance']) ? <ExpiryPage /> : <AccessDenied />
+      case 'casualties':   return hasBackendApi && !hasSupabaseConfig ? <BackendMigrationPage page="Casualties" /> : can(['admin','warehouse_manager','operations']) ? <CasualtyPage /> : <AccessDenied />
+      case 'reorder':      return hasBackendApi && !hasSupabaseConfig ? <BackendMigrationPage page="Reorder Alerts" /> : can(['admin','warehouse_manager','operations','finance']) ? <ReorderPage /> : <AccessDenied />
+      case 'performance':  return hasBackendApi && !hasSupabaseConfig ? <BackendMigrationPage page="Partner Performance" /> : can(['admin','operations','finance']) ? <PartnerPerformancePage /> : <AccessDenied />
       // ── Phase 3 — Reconciliation ──────────────────────────
-      case 'count':        return can(['admin','warehouse_manager','operations']) ? <PhysicalCountPage /> : <AccessDenied />
-      case 'reports':      return can(['admin','warehouse_manager','operations','finance']) ? <ReportsPage /> : <AccessDenied />
+      case 'count':        return hasBackendApi && !hasSupabaseConfig ? <BackendMigrationPage page="Physical Count" /> : can(['admin','warehouse_manager','operations']) ? <PhysicalCountPage /> : <AccessDenied />
+      case 'reports':      return hasBackendApi && !hasSupabaseConfig ? <BackendMigrationPage page="Reports & Export" /> : can(['admin','warehouse_manager','operations','finance']) ? <ReportsPage /> : <AccessDenied />
       // ── Setup ─────────────────────────────────────────────
       case 'products':     return can(['admin','warehouse_manager','operations']) ? <ProductsPage /> : <AccessDenied />
       case 'partners':     return can(['admin','operations']) ? <BrandPartnersPage /> : <AccessDenied />
@@ -98,7 +142,7 @@ export default function App() {
   }
 
   return (
-    <AuthContext.Provider value={{ session, profile, supabase }}>
+    <AuthContext.Provider value={{ session, profile, supabase, api, authMode: hasBackendApi ? 'api' : 'supabase', refreshAuth, logout }}>
       <Layout page={page} setPage={setPage}>{renderPage()}</Layout>
     </AuthContext.Provider>
   )
@@ -127,18 +171,37 @@ function DeploymentSetupPage() {
 
         <div style={{ background: '#111618', border: '1px solid #1a2224', borderRadius: 10, padding: 24, marginBottom: 24 }}>
           <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 22, marginBottom: 8 }}>
-            This deployment is reviewable, but not connected to Supabase yet.
+            This deployment is reviewable, but no data backend is configured yet.
           </div>
           <div style={{ fontSize: 14, color: '#93a7ac', lineHeight: 1.6, marginBottom: 16 }}>
-            Set the two public Vite environment variables below in Railway, then redeploy. Until then, the embedded operator manual stays available so you can review the workflow and page model safely.
+            Configure either the legacy Supabase frontend variables or the new Railway backend API base URL, then redeploy. Until then, the embedded operator manual stays available so you can review the workflow and page model safely.
           </div>
           <div style={{ display: 'grid', gap: 12 }}>
+            <EnvRow name="VITE_API_BASE_URL" value="https://your-railway-api.up.railway.app" />
             <EnvRow name="VITE_SUPABASE_URL" value="https://YOUR_PROJECT_ID.supabase.co" />
             <EnvRow name="VITE_SUPABASE_ANON_KEY" value="YOUR_SUPABASE_ANON_KEY" />
           </div>
         </div>
 
         <HowItWorksPage />
+      </div>
+    </div>
+  )
+}
+
+function BackendMigrationPage({ page }) {
+  return (
+    <div style={{ maxWidth: 920 }}>
+      <div style={{ background: '#111618', border: '1px solid #1a2224', borderRadius: 10, padding: 24 }}>
+        <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 22, color: '#e0e8ea', marginBottom: 8 }}>
+          {page} is not on the Railway backend yet.
+        </div>
+        <div style={{ fontSize: 14, color: '#93a7ac', lineHeight: 1.6, marginBottom: 16 }}>
+          Auth, users, products, and brand partners can already run against the new backend. Inventory, movement, and reporting pages still require the remaining migration work from the Railway backend plan.
+        </div>
+        <div style={{ fontFamily: 'DM Mono, monospace', fontSize: 11, color: '#00e5a0', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+          Current backend-ready modules: Login, Users, Products, Brand Partners
+        </div>
       </div>
     </div>
   )

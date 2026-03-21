@@ -29,7 +29,7 @@ const ROLE_COLORS = {
 }
 
 export default function Layout({ children, page, setPage }) {
-  const { profile, supabase } = useAuth()
+  const { profile, logout } = useAuth()
   const [sidebarOpen, setSidebarOpen] = useState(false)
 
   const currentLabel = NAV.find(n => n.id === page)?.label || 'Dashboard'
@@ -100,7 +100,7 @@ export default function Layout({ children, page, setPage }) {
           }}>
             {profile?.role?.replace('_',' ')}
           </div>
-          <button onClick={() => supabase.auth.signOut()} style={{
+          <button onClick={() => logout()} style={{
             width:'100%', padding:'8px 0', border:'1px solid #1a2224',
             background:'transparent', color:'#3a5058', borderRadius:4,
             fontFamily:'DM Mono, monospace', fontSize:11, letterSpacing:'0.08em',

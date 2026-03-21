@@ -4,7 +4,7 @@ import { useAuth } from '../App'
 import { Card, Button, Input, Select, Modal, Table, PageHeader, Alert, Badge } from '../components/ui'
 
 export function ProductsPage() {
-  const { supabase } = useAuth()
+  const { supabase, api, authMode } = useAuth()
   const [products, setProducts] = useState([])
   const [partners, setPartners] = useState([])
   const [showModal, setShowModal] = useState(false)
@@ -18,6 +18,16 @@ export function ProductsPage() {
 
   useEffect(() => { loadData() }, [])
   async function loadData() {
+    if (authMode === 'api') {
+      const [{ products: productRows }, { partners: partnerRows }] = await Promise.all([
+        api.get('/api/products'),
+        api.get('/api/partners'),
+      ])
+      setProducts((productRows || []).map((item) => ({ ...item, brand_partners: { name: item.brand_partner_name } })))
+      setPartners(partnerRows || [])
+      return
+    }
+
     const [{ data: p }, { data: bp }] = await Promise.all([
       supabase.from('products').select('*, brand_partners(name)').eq('is_active', true).order('name'),
       supabase.from('brand_partners').select('*').eq('is_active', true).order('name'),
@@ -32,10 +42,19 @@ export function ProductsPage() {
       reorder_threshold: parseFloat(form.reorder_threshold) || 0,
       expiry_alert_days: parseInt(form.expiry_alert_days) || 30,
     }
-    const { error } = editing
-      ? await supabase.from('products').update(payload).eq('id', editing.id)
-      : await supabase.from('products').insert(payload)
-    if (error) return showAlert(error.message, 'error')
+    try {
+      if (authMode === 'api') {
+        if (editing) await api.patch(`/api/products/${editing.id}`, payload)
+        else await api.post('/api/products', payload)
+      } else {
+        const { error } = editing
+          ? await supabase.from('products').update(payload).eq('id', editing.id)
+          : await supabase.from('products').insert(payload)
+        if (error) throw error
+      }
+    } catch (error) {
+      return showAlert(error.message, 'error')
+    }
     showAlert(editing ? 'Product updated.' : 'Product created.', 'success')
     setShowModal(false); setEditing(null); setForm(emptyForm()); loadData()
   }
@@ -103,7 +122,7 @@ export default ProductsPage
 
 // ── Brand Partners Page ──────────────────────────────────────
 export function BrandPartnersPage() {
-  const { supabase } = useAuth()
+  const { supabase, api, authMode } = useAuth()
   const [partners, setPartners] = useState([])
   const [showModal, setShowModal] = useState(false)
   const [editing, setEditing] = useState(null)
@@ -112,16 +131,31 @@ export function BrandPartnersPage() {
 
   useEffect(() => { loadData() }, [])
   async function loadData() {
+    if (authMode === 'api') {
+      const { partners } = await api.get('/api/partners')
+      setPartners(partners || [])
+      return
+    }
+
     const { data } = await supabase.from('brand_partners').select('*').eq('is_active', true).order('name')
     setPartners(data || [])
   }
 
   async function handleSubmit(e) {
     e.preventDefault()
-    const { error } = editing
-      ? await supabase.from('brand_partners').update(form).eq('id', editing.id)
-      : await supabase.from('brand_partners').insert(form)
-    if (error) return showAlert(error.message, 'error')
+    try {
+      if (authMode === 'api') {
+        if (editing) await api.patch(`/api/partners/${editing.id}`, form)
+        else await api.post('/api/partners', form)
+      } else {
+        const { error } = editing
+          ? await supabase.from('brand_partners').update(form).eq('id', editing.id)
+          : await supabase.from('brand_partners').insert(form)
+        if (error) throw error
+      }
+    } catch (error) {
+      return showAlert(error.message, 'error')
+    }
     showAlert(editing ? 'Partner updated.' : 'Partner added.', 'success')
     setShowModal(false); setEditing(null); setForm({ name: '', contact_name: '', contact_email: '', contact_phone: '' }); loadData()
   }
@@ -166,7 +200,7 @@ export function BrandPartnersPage() {
 
 // ── Users Page ───────────────────────────────────────────────
 export function UsersPage() {
-  const { supabase } = useAuth()
+  const { supabase, api, authMode } = useAuth()
   const [users, setUsers] = useState([])
   const [showModal, setShowModal] = useState(false)
   const [alert, setAlert] = useState({ message: '', type: 'success' })
@@ -177,12 +211,22 @@ export function UsersPage() {
 
   useEffect(() => { loadUsers() }, [])
   async function loadUsers() {
+    if (authMode === 'api') {
+      const { users } = await api.get('/api/users')
+      setUsers(users || [])
+      return
+    }
+
     const { data } = await supabase.from('profiles').select('*').order('full_name')
     setUsers(data || [])
   }
 
   async function toggleActive(user) {
-    await supabase.from('profiles').update({ is_active: !user.is_active }).eq('id', user.id)
+    if (authMode === 'api') {
+      await api.patch(`/api/users/${user.id}/status`, { is_active: !user.is_active })
+    } else {
+      await supabase.from('profiles').update({ is_active: !user.is_active }).eq('id', user.id)
+    }
     loadUsers()
   }
 
@@ -190,26 +234,46 @@ export function UsersPage() {
     e.preventDefault()
     setLoading(true)
 
-    const { data, error } = await supabase.functions.invoke('user-admin', {
-      body: {
-        action: form.action,
-        email: form.email,
-        full_name: form.full_name,
-        password: form.action === 'create' ? form.password : undefined,
-        role: form.role,
-        redirectTo: window.location.origin,
-      },
-    })
+    try {
+      let data
+      if (authMode === 'api') {
+        data = form.action === 'invite'
+          ? await api.post('/api/users/invite', {
+              email: form.email,
+              full_name: form.full_name,
+              role: form.role,
+            })
+          : await api.post('/api/users', {
+              email: form.email,
+              full_name: form.full_name,
+              password: form.password,
+              role: form.role,
+            })
+      } else {
+        const response = await supabase.functions.invoke('user-admin', {
+          body: {
+            action: form.action,
+            email: form.email,
+            full_name: form.full_name,
+            password: form.action === 'create' ? form.password : undefined,
+            role: form.role,
+            redirectTo: window.location.origin,
+          },
+        })
+        if (response.error || response.data?.error) {
+          throw new Error(response.error?.message || response.data?.error)
+        }
+        data = response.data
+      }
 
-    if (error || data?.error) {
-      showAlert(`Error: ${error?.message || data?.error}`, 'error')
-    } else {
-      showAlert(data?.message || 'User action completed.', 'success')
+      const inviteSuffix = data?.invite_url ? ` Invite URL: ${data.invite_url}` : ''
+      showAlert(`${data?.message || 'User action completed.'}${inviteSuffix}`, 'success')
       setShowModal(false)
       setForm({ action: 'invite', email: '', full_name: '', password: '', role: 'warehouse_manager' })
-      setTimeout(loadUsers, 1000)
+      setTimeout(loadUsers, 300)
+    } catch (error) {
+      showAlert(`Error: ${error.message}`, 'error')
     }
-
     setLoading(false)
   }
 
@@ -221,7 +285,9 @@ export function UsersPage() {
       <Alert message={alert.message} type={alert.type} />
 
       <div style={{ background: 'rgba(255,181,71,0.05)', border: '1px solid rgba(255,181,71,0.15)', borderRadius: 6, padding: '12px 16px', marginBottom: 20, fontSize: 13, color: '#ffb547' }}>
-        User onboarding now uses the server-side `user-admin` Edge Function. Use Invite to send a setup email, or Create to issue an immediate account with a temporary password.
+        {authMode === 'api'
+          ? 'User onboarding is running through the Railway backend. Invite currently returns a completion URL/token for distribution until email delivery is added.'
+          : 'User onboarding now uses the server-side `user-admin` Edge Function. Use Invite to send a setup email, or Create to issue an immediate account with a temporary password.'}
       </div>
 
       <Card style={{ padding: 0, overflow: 'hidden' }}>

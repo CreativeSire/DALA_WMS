@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useAuth } from '../App'
 
 export default function LoginPage() {
-  const { supabase } = useAuth()
+  const { supabase, api, authMode, refreshAuth } = useAuth()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
@@ -13,8 +13,17 @@ export default function LoginPage() {
     e.preventDefault()
     setLoading(true)
     setError('')
-    const { error } = await supabase.auth.signInWithPassword({ email, password })
-    if (error) setError(error.message)
+    try {
+      if (authMode === 'api') {
+        await api.post('/auth/login', { email, password })
+        await refreshAuth()
+      } else {
+        const { error } = await supabase.auth.signInWithPassword({ email, password })
+        if (error) throw error
+      }
+    } catch (error) {
+      setError(error.message)
+    }
     setLoading(false)
   }
 
@@ -22,9 +31,13 @@ export default function LoginPage() {
     e.preventDefault()
     setLoading(true)
     setError('')
-    const { error } = await supabase.auth.resetPasswordForEmail(email)
-    if (error) setError(error.message)
-    else setError('Password reset email sent. Check your inbox.')
+    if (authMode === 'api') {
+      setError('Password reset is not implemented in the Railway backend yet.')
+    } else {
+      const { error } = await supabase.auth.resetPasswordForEmail(email)
+      if (error) setError(error.message)
+      else setError('Password reset email sent. Check your inbox.')
+    }
     setLoading(false)
   }
 
@@ -54,11 +67,17 @@ export default function LoginPage() {
           <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 18, color: '#e0e8ea', marginBottom: 6 }}>
             {mode === 'login' ? 'Sign In' : 'Reset Password'}
           </div>
-          <div style={{ fontSize: 13, color: '#4a6068', marginBottom: 28 }}>
-            {mode === 'login' ? 'Enter your credentials to access the system.' : 'Enter your email and we\'ll send a reset link.'}
-          </div>
+            <div style={{ fontSize: 13, color: '#4a6068', marginBottom: 28 }}>
+              {mode === 'login' ? 'Enter your credentials to access the system.' : 'Enter your email and we\'ll send a reset link.'}
+            </div>
 
-          <form onSubmit={mode === 'login' ? handleLogin : handleReset}>
+            {authMode === 'api' && (
+              <div style={{ padding: '10px 14px', borderRadius: 6, marginBottom: 16, fontSize: 12, background: 'rgba(79,195,247,0.08)', color: '#4fc3f7', border: '1px solid rgba(79,195,247,0.2)' }}>
+                This deployment is using the Railway backend for authentication.
+              </div>
+            )}
+
+            <form onSubmit={mode === 'login' ? handleLogin : handleReset}>
             <div style={{ marginBottom: 16 }}>
               <label style={labelStyle}>Email Address</label>
               <input
