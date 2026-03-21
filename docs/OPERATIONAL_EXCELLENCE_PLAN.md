@@ -16,6 +16,14 @@ Core rule:
 4. Make audit and review easier inside the app than outside it.
 5. Allow exports for reporting, not for operational completion.
 
+## What has now been implemented
+
+- Invite emails can be sent from the Railway backend when SMTP settings are added.
+- Password reset emails can be sent from the Railway backend when SMTP settings are added.
+- Admin audit logs now record key access-control actions.
+- The live app now includes a plain-language backup and restore runbook in `How It Works`.
+- Visual workflow pictures are now embedded in the manual so operators can follow the main warehouse flows more easily.
+
 ## Spreadsheet-elimination feature matrix
 
 | Operational need | Spreadsheet failure mode | DALA WMS current state | Gap to close | Priority |
@@ -102,10 +110,10 @@ Targets:
 - `src/components/Layout.jsx`
 
 Work:
-- Add email delivery for invite and reset flows.
-- Add forced password rotation flag on newly created or reset accounts.
-- Add admin action audit writes for invite, create, reset, activate, deactivate.
-- Expose admin audit views in a new app page.
+- Add email delivery for invite and reset flows. Done.
+- Add forced password rotation flag on newly created or reset accounts. Remaining.
+- Add admin action audit writes for invite, create, reset, activate, deactivate. Done.
+- Expose admin audit views in a new app page. Done.
 
 ### Phase 2: Exception-led warehouse workflow
 
@@ -148,9 +156,9 @@ Targets:
 - `server/README.md`
 
 Work:
-- Add backup/restore runbook into the app manual.
-- Add Railway recovery checklist and credential rotation steps.
-- Add recovery drill checklist and ownership mapping.
+- Add backup/restore runbook into the app manual. Done.
+- Add Railway recovery checklist and credential rotation steps. Partly done in the manual and repo docs.
+- Add recovery drill checklist and ownership mapping. Remaining.
 
 ## Railway deployment alignment
 

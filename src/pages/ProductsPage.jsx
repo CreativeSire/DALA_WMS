@@ -238,7 +238,8 @@ export function UsersPage() {
 
     try {
       const response = await api.post(`/api/users/${user.id}/reset-password`, {})
-      showAlert(`${response.message} Temporary password: ${response.temporary_password}`, 'success')
+      const emailSuffix = response.email_status ? ` Email: ${response.email_status}.` : ''
+      showAlert(`${response.message}${emailSuffix} Temporary password: ${response.temporary_password}`, 'success')
     } catch (error) {
       showAlert(`Error: ${error.message}`, 'error')
     }
@@ -281,7 +282,8 @@ export function UsersPage() {
       }
 
       const inviteSuffix = data?.invite_url ? ` Invite URL: ${data.invite_url}` : ''
-      showAlert(`${data?.message || 'User action completed.'}${inviteSuffix}`, 'success')
+      const emailSuffix = data?.email_status ? ` Email: ${data.email_status}.` : ''
+      showAlert(`${data?.message || 'User action completed.'}${emailSuffix}${inviteSuffix}`, 'success')
       setShowModal(false)
       setForm({ action: 'invite', email: '', full_name: '', password: '', role: 'warehouse_manager' })
       setTimeout(loadUsers, 300)

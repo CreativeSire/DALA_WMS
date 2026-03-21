@@ -5,6 +5,7 @@ export const latestChanges = [
   'Dispatch allocation validates against freshly fetched batch data and applies FIFO consistently during save.',
   'Physical count approvals create reconciliation batches for positive variances when no active stock batch exists.',
   'The app shell, shared UI system, and operator manual are embedded directly in the live product so training and operations stay aligned.',
+  'Invite emails, password reset emails, and admin audit logs are now part of the live Railway path when email settings are added.',
 ]
 
 export const adminSetupChecklist = [
@@ -230,10 +231,49 @@ export const pageGuides = [
 ]
 
 export const systemNarrative = [
-  'The system is batch-based. Every inbound receipt becomes one or more stock batches, and every outbound or corrective action adjusts those batch balances.',
-  'The ledger is immutable. Stock movements are appended for GRNs, dispatches, write-offs, and count adjustments instead of editing history in place.',
-  'Operational dashboards and alert pages depend on backend read models and aggregated stock queries so stock, expiry, reorder, and reconciliation screens stay aligned.',
-  'Roles are enforced in both the app navigation and the Railway backend authorization layer.',
+  'Every stock item that comes in is saved as a real batch, so the team can always see what arrived, when it arrived, and when it will expire.',
+  'Every stock item that goes out leaves a trail, so nobody has to guess who moved it or when it left the warehouse.',
+  'Alerts for low stock, expiry, damage, and count differences come from the same live data, so teams are looking at one truth.',
+  'Each role only sees the work they should do, which reduces confusion and accidental mistakes.',
+]
+
+export const simpleGoals = [
+  'Make daily work faster than using paper and spreadsheets.',
+  'Stop stock errors before they are saved.',
+  'Show risk early, especially low stock, expiry, and count differences.',
+  'Make it easy for managers to review what happened without asking for separate files.',
+]
+
+export const workflowVisuals = [
+  {
+    title: 'How stock comes in',
+    image: '/workflow-inbound.svg',
+    note: 'The goal is simple: receive once, save once, and let the system update stock, alerts, and the ledger automatically.',
+  },
+  {
+    title: 'How stock goes out',
+    image: '/workflow-outbound.svg',
+    note: 'Dispatch uses the oldest good stock first, then waits for gate confirmation so the warehouse and security stay in sync.',
+  },
+  {
+    title: 'How counting fixes mistakes',
+    image: '/workflow-count.svg',
+    note: 'Counting is meant to catch problems early. Notes and approval make sure changes are explained, not hidden.',
+  },
+]
+
+export const backupRunbook = [
+  'Before risky changes, take a fresh backup of the Railway Postgres database.',
+  'Save the backup in a safe place with the date, time, and owner written clearly.',
+  'Test the backup in a safe environment before trusting it for real recovery.',
+  'If something goes wrong, pause changes, follow the runbook, restore carefully, and confirm the data before opening the system again.',
+]
+
+export const backupChecklist = [
+  'Know who is allowed to take a backup and who is allowed to restore one.',
+  'Write down where the latest safe backup lives.',
+  'Keep a simple recovery checklist in the app so nobody has to guess during an incident.',
+  'Run recovery drills from time to time and record who checked the result.',
 ]
 
 export const spreadsheetEliminationMatrix = [

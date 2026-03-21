@@ -18,6 +18,13 @@ const envSchema = z.object({
   INITIAL_ADMIN_EMAIL: z.string().email().optional(),
   INITIAL_ADMIN_PASSWORD: z.string().min(8).optional(),
   INITIAL_ADMIN_FULL_NAME: z.string().min(1).optional(),
+  SMTP_HOST: z.string().optional(),
+  SMTP_PORT: z.coerce.number().int().positive().optional(),
+  SMTP_SECURE: z.union([z.literal('true'), z.literal('false')]).optional(),
+  SMTP_USER: z.string().optional(),
+  SMTP_PASS: z.string().optional(),
+  SMTP_FROM_EMAIL: z.string().email().optional(),
+  SMTP_FROM_NAME: z.string().optional(),
 })
 
 const parsed = envSchema.safeParse(process.env)

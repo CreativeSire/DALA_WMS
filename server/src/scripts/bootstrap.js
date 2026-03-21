@@ -9,6 +9,7 @@ const casualtyReasonCheck = `CHECK (reason IN ('damaged','expired','lost','theft
 const casualtyStatusCheck = `CHECK (status IN ('pending','approved','rejected'))`
 const batchStatusCheck = `CHECK (status IN ('active','near_expiry','expired','depleted','written_off'))`
 const countStatusCheck = `CHECK (status IN ('open','submitted','approved','closed'))`
+const adminAuditActionCheck = `CHECK (action IN ('user_created','invite_sent','user_activated','user_deactivated','password_reset','password_changed','email_delivery_failed','email_delivery_sent'))`
 
 async function bootstrap() {
   await query('CREATE EXTENSION IF NOT EXISTS pgcrypto')
@@ -215,6 +216,18 @@ async function bootstrap() {
     )
   `)
 
+  await query(`
+    CREATE TABLE IF NOT EXISTS admin_audit_logs (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      actor_user_id UUID REFERENCES app_users(id) ON DELETE SET NULL,
+      target_user_id UUID REFERENCES app_users(id) ON DELETE SET NULL,
+      action TEXT NOT NULL ${adminAuditActionCheck},
+      summary TEXT NOT NULL,
+      details JSONB,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `)
+
   await query(`CREATE INDEX IF NOT EXISTS idx_stock_batches_product_status ON stock_batches(product_id, status, received_at)`)
   await query(`CREATE INDEX IF NOT EXISTS idx_stock_movements_created_at ON stock_movements(created_at DESC)`)
   await query(`CREATE INDEX IF NOT EXISTS idx_stock_movements_product_type ON stock_movements(product_id, movement_type, created_at DESC)`)
@@ -222,6 +235,7 @@ async function bootstrap() {
   await query(`CREATE INDEX IF NOT EXISTS idx_dispatch_notes_created_at ON dispatch_notes(created_at DESC)`)
   await query(`CREATE INDEX IF NOT EXISTS idx_casualties_created_at ON casualties(created_at DESC)`)
   await query(`CREATE INDEX IF NOT EXISTS idx_count_sessions_opened_at ON count_sessions(opened_at DESC)`)
+  await query(`CREATE INDEX IF NOT EXISTS idx_admin_audit_logs_created_at ON admin_audit_logs(created_at DESC)`)
 
   if (env.INITIAL_ADMIN_EMAIL && env.INITIAL_ADMIN_PASSWORD && env.INITIAL_ADMIN_FULL_NAME) {
     const passwordHash = await hashPassword(env.INITIAL_ADMIN_PASSWORD)

@@ -3,6 +3,7 @@ import { z } from 'zod'
 import { clearAuthCookie, hashInviteToken, hashPassword, sanitizeUser, setAuthCookie, signAuthToken, verifyPassword } from '../lib/auth.js'
 import { asyncHandler, createHttpError } from '../lib/http.js'
 import { requireAuth } from '../middleware/auth.js'
+import { createAdminAuditLog } from '../repositories/admin-audit-repository.js'
 import { completeInvite, findInviteByTokenHash, findUserByEmail, findUserById, updateUserPassword } from '../repositories/users-repository.js'
 
 const loginSchema = z.object({
@@ -103,6 +104,13 @@ authRouter.post(
     }
 
     const updated = await updateUserPassword(user.id, await hashPassword(payload.newPassword))
+    await createAdminAuditLog({
+      actorUserId: user.id,
+      targetUserId: user.id,
+      action: 'password_changed',
+      summary: `${user.full_name} changed their password.`,
+      details: { email: user.email },
+    })
 
     res.json({
       message: 'Password changed successfully.',

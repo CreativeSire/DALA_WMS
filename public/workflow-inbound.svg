@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="360" viewBox="0 0 1200 360" fill="none">
+  <rect width="1200" height="360" rx="28" fill="#091315"/>
+  <rect x="36" y="70" width="250" height="200" rx="24" fill="#112024" stroke="#1F3D43"/>
+  <rect x="324" y="70" width="250" height="200" rx="24" fill="#112024" stroke="#1F3D43"/>
+  <rect x="612" y="70" width="250" height="200" rx="24" fill="#112024" stroke="#1F3D43"/>
+  <rect x="900" y="70" width="250" height="200" rx="24" fill="#112024" stroke="#1F3D43"/>
+  <text x="68" y="118" fill="#2BE3B4" font-family="Arial" font-size="16" font-weight="700">1. Truck arrives</text>
+  <text x="68" y="154" fill="#DDE8E6" font-family="Arial" font-size="22" font-weight="700">Check delivery</text>
+  <text x="68" y="190" fill="#8DA2A7" font-family="Arial" font-size="18">count, batch, expiry</text>
+  <text x="356" y="118" fill="#6DC6FF" font-family="Arial" font-size="16" font-weight="700">2. GRN entered</text>
+  <text x="356" y="154" fill="#DDE8E6" font-family="Arial" font-size="22" font-weight="700">Save into DALA</text>
+  <text x="356" y="190" fill="#8DA2A7" font-family="Arial" font-size="18">partner, SKU, quantity</text>
+  <text x="644" y="118" fill="#F5B85C" font-family="Arial" font-size="16" font-weight="700">3. Batch created</text>
+  <text x="644" y="154" fill="#DDE8E6" font-family="Arial" font-size="22" font-weight="700">Stock becomes live</text>
+  <text x="644" y="190" fill="#8DA2A7" font-family="Arial" font-size="18">ledger and alerts update</text>
+  <text x="932" y="118" fill="#FF8552" font-family="Arial" font-size="16" font-weight="700">4. Risks watched</text>
+  <text x="932" y="154" fill="#DDE8E6" font-family="Arial" font-size="22" font-weight="700">Expiry and reorder</text>
+  <text x="932" y="190" fill="#8DA2A7" font-family="Arial" font-size="18">show up automatically</text>
+  <path d="M286 170H324" stroke="#2BE3B4" stroke-width="6" stroke-linecap="round"/>
+  <path d="M574 170H612" stroke="#6DC6FF" stroke-width="6" stroke-linecap="round"/>
+  <path d="M862 170H900" stroke="#F5B85C" stroke-width="6" stroke-linecap="round"/>
+  <path d="M308 152L324 170L308 188" stroke="#2BE3B4" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M596 152L612 170L596 188" stroke="#6DC6FF" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M884 152L900 170L884 188" stroke="#F5B85C" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

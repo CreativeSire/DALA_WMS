@@ -13,6 +13,7 @@ import PartnerPerformancePage from './pages/PartnerPerformancePage'
 import PhysicalCountPage from './pages/PhysicalCountPage'
 import ReportsPage from './pages/ReportsPage'
 import HowItWorksPage from './pages/HowItWorksPage'
+import AdminAuditPage from './pages/AdminAuditPage'
 import { ProductsPage, BrandPartnersPage, UsersPage } from './pages/ProductsPage'
 import Layout from './components/Layout'
 import { createApiClient } from './lib/apiClient'
@@ -138,6 +139,7 @@ export default function App() {
       case 'products':     return can(['admin','warehouse_manager','operations']) ? <ProductsPage /> : <AccessDenied />
       case 'partners':     return can(['admin','operations']) ? <BrandPartnersPage /> : <AccessDenied />
       case 'users':        return can(['admin']) ? <UsersPage /> : <AccessDenied />
+      case 'admin-audit':  return can(['admin']) ? <AdminAuditPage /> : <AccessDenied />
       default:             return <Dashboard setPage={setPage} />
     }
   }

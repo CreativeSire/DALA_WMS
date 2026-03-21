@@ -1,5 +1,5 @@
 import { Card, Badge, PageHeader } from '../components/ui'
-import { adminSetupChecklist, gapComparison, latestChanges, pageGuides, remainingProductionWork, roadmapPhases, roleGuides, spreadsheetEliminationMatrix, systemNarrative } from '../content/howItWorks'
+import { adminSetupChecklist, backupChecklist, backupRunbook, gapComparison, latestChanges, pageGuides, remainingProductionWork, roadmapPhases, roleGuides, simpleGoals, spreadsheetEliminationMatrix, systemNarrative, workflowVisuals } from '../content/howItWorks'
 
 export default function HowItWorksPage() {
   return (
@@ -11,18 +11,37 @@ export default function HowItWorksPage() {
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 16, marginBottom: 24 }}>
         <Card>
-          <SectionTitle>System Model</SectionTitle>
-          {systemNarrative.map((item, index) => (
+          <SectionTitle>What This System Tries To Do</SectionTitle>
+          {simpleGoals.map((item, index) => (
             <Bullet key={index}>{item}</Bullet>
           ))}
         </Card>
         <Card>
+          <SectionTitle>How The System Thinks</SectionTitle>
+          {systemNarrative.map((item, index) => (
+            <Bullet key={index}>{item}</Bullet>
+          ))}
+        </Card>
+        <Card style={{ gridColumn: '1 / -1' }}>
           <SectionTitle>Latest System Changes</SectionTitle>
           {latestChanges.map((item, index) => (
             <Bullet key={index}>{item}</Bullet>
           ))}
         </Card>
       </div>
+
+      <Card style={{ marginBottom: 24 }}>
+        <SectionTitle>Simple Workflow Pictures</SectionTitle>
+        <div style={{ display: 'grid', gap: 18 }}>
+          {workflowVisuals.map((flow) => (
+            <div key={flow.title} style={{ border: '1px solid #1a2224', borderRadius: 12, padding: 18, background: '#0b0f10' }}>
+              <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 18, color: '#e0e8ea', marginBottom: 12 }}>{flow.title}</div>
+              <img src={flow.image} alt={flow.title} style={{ width: '100%', borderRadius: 10, border: '1px solid #1a2224', marginBottom: 12 }} />
+              <div style={{ fontSize: 13, color: '#9bb0b4', lineHeight: 1.6 }}>{flow.note}</div>
+            </div>
+          ))}
+        </div>
+      </Card>
 
       <Card style={{ marginBottom: 24 }}>
         <SectionTitle>Admin Setup Checklist</SectionTitle>
@@ -71,6 +90,24 @@ export default function HowItWorksPage() {
       <Card style={{ marginBottom: 24 }}>
         <SectionTitle>Remaining High-Value Production Work</SectionTitle>
         {remainingProductionWork.map((item, index) => (
+          <Bullet key={index}>{item}</Bullet>
+        ))}
+      </Card>
+
+      <Card style={{ marginBottom: 24 }}>
+        <SectionTitle>Backup And Restore Runbook</SectionTitle>
+        <div style={{ border: '1px solid #1a2224', borderRadius: 12, padding: 18, background: '#0b0f10', marginBottom: 16 }}>
+          <img src="/workflow-backup.svg" alt="Backup and restore workflow" style={{ width: '100%', borderRadius: 10, border: '1px solid #1a2224', marginBottom: 12 }} />
+          <div style={{ fontSize: 13, color: '#9bb0b4', lineHeight: 1.6 }}>
+            This is the simple rule: protect the data first, store the backup clearly, test recovery safely, and never guess during an incident.
+          </div>
+        </div>
+        <Label>Simple steps</Label>
+        {backupRunbook.map((item, index) => (
+          <Bullet key={index}>{item}</Bullet>
+        ))}
+        <Label style={{ marginTop: 14 }}>What the team must always know</Label>
+        {backupChecklist.map((item, index) => (
           <Bullet key={index}>{item}</Bullet>
         ))}
       </Card>

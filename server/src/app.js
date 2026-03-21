@@ -5,6 +5,7 @@ import express from 'express'
 import helmet from 'helmet'
 import { env } from './config/env.js'
 import { authRouter } from './routes/auth.js'
+import { adminRouter } from './routes/admin.js'
 import { casualtiesRouter } from './routes/casualties.js'
 import { countsRouter } from './routes/counts.js'
 import { dispatchesRouter } from './routes/dispatches.js'
@@ -46,6 +47,7 @@ export function createApp() {
         casualties: '/api/casualties',
         counts: '/api/count-sessions',
         reports: '/api/reports/:id',
+        adminAudit: '/api/admin/audit-logs',
       },
     })
   })
@@ -61,6 +63,7 @@ export function createApp() {
   app.use('/api/casualties', casualtiesRouter)
   app.use('/api/count-sessions', countsRouter)
   app.use('/api/reports', reportsRouter)
+  app.use('/api/admin', adminRouter)
 
   app.use(notFoundHandler)
   app.use(errorHandler)

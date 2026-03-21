@@ -22,6 +22,7 @@ const NAV = [
   { id:'products', label:'Products', icon:'◉', roles:['admin','warehouse_manager','operations'] },
   { id:'partners', label:'Brand Partners', icon:'○', roles:['admin','operations'] },
   { id:'users', label:'Users', icon:'⊕', roles:['admin'] },
+  { id:'admin-audit', label:'Admin Audit', icon:'⌘', roles:['admin'] },
 ]
 
 const ROLE_COLORS = {

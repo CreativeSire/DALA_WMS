@@ -10,6 +10,7 @@ Express + Postgres backend for replacing Supabase in DALA WMS.
 - `POST /auth/logout`
 - `POST /auth/complete-invite`
 - `POST /auth/change-password`
+- `GET /api/admin/audit-logs`
 - `GET /api/users`
 - `POST /api/users`
 - `POST /api/users/invite`
@@ -30,6 +31,13 @@ Copy `.env.example` to `.env` and fill in:
 - `DATABASE_URL`
 - `JWT_SECRET`
 - `FRONTEND_ORIGIN`
+- `SMTP_HOST`
+- `SMTP_PORT`
+- `SMTP_SECURE`
+- `SMTP_USER`
+- `SMTP_PASS`
+- `SMTP_FROM_EMAIL`
+- `SMTP_FROM_NAME`
 
 Optional initial admin seed:
 
@@ -67,3 +75,10 @@ npm run db:seed-demo
 ```
 
 If you seed the initial admin in production, rotate that password immediately after first login.
+
+## What the new controls add
+
+- Invite links can be emailed directly when SMTP is configured.
+- Password reset emails can be sent directly to the affected user.
+- Admin audit logs record invite, create, reset, activate, deactivate, and password-change events.
+- The app manual now contains a plain-language backup and restore runbook.

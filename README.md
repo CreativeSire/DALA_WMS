@@ -43,6 +43,13 @@ Required backend variables:
 DATABASE_URL=postgresql://...
 JWT_SECRET=long-secret-at-least-24-characters
 FRONTEND_ORIGIN=http://localhost:5173
+SMTP_HOST=smtp.your-provider.com
+SMTP_PORT=587
+SMTP_SECURE=false
+SMTP_USER=your-smtp-user
+SMTP_PASS=your-smtp-password
+SMTP_FROM_EMAIL=ops@dala.ng
+SMTP_FROM_NAME=DALA WMS
 ```
 
 Optional bootstrap admin:
@@ -136,9 +143,22 @@ npm run db:seed-demo
 
 The Users page now supports:
 - invite link generation
+- invite email delivery when SMTP is configured
 - direct user creation
 - temporary password resets
+- password reset email delivery when SMTP is configured
 - activation and deactivation
+- admin audit review through the Admin Audit page
+
+## In-app operational guide
+
+The live `How It Works` page now includes:
+
+- simple workflow pictures for receiving, dispatch, counting, and backup/recovery
+- the spreadsheet-elimination matrix
+- the DALA WMS vs Excel vs Inventory Ark gap view
+- the backup and restore runbook in plain language
+- the phased implementation roadmap
 
 ## Operational note
 

@@ -12,6 +12,10 @@ const repositoryMocks = vi.hoisted(() => ({
 }))
 
 vi.mock('../repositories/users-repository.js', () => repositoryMocks)
+const auditMocks = vi.hoisted(() => ({
+  createAdminAuditLog: vi.fn(),
+}))
+vi.mock('../repositories/admin-audit-repository.js', () => auditMocks)
 
 describe('auth routes', () => {
   let authRouter
