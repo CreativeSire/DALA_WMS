@@ -1,5 +1,5 @@
 import { Card, Badge, PageHeader } from '../components/ui'
-import { adminSetupChecklist, latestChanges, pageGuides, roleGuides, systemNarrative } from '../content/howItWorks'
+import { adminSetupChecklist, gapComparison, latestChanges, pageGuides, remainingProductionWork, roadmapPhases, roleGuides, spreadsheetEliminationMatrix, systemNarrative } from '../content/howItWorks'
 
 export default function HowItWorksPage() {
   return (
@@ -29,6 +29,67 @@ export default function HowItWorksPage() {
         {adminSetupChecklist.map((item, index) => (
           <Bullet key={index}>{item}</Bullet>
         ))}
+      </Card>
+
+      <Card style={{ marginBottom: 24 }}>
+        <SectionTitle>Spreadsheet Elimination Matrix</SectionTitle>
+        <div style={{ display: 'grid', gap: 14 }}>
+          {spreadsheetEliminationMatrix.map((item) => (
+            <div key={item.area} style={{ border: '1px solid #1a2224', borderRadius: 8, padding: 18, background: '#0b0f10' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'center', marginBottom: 8 }}>
+                <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 17, color: '#e0e8ea' }}>{item.area}</div>
+                <Badge color={item.priority === 'P0' ? '#ff8552' : '#4fc3f7'}>{item.priority}</Badge>
+              </div>
+              <Label>Spreadsheet risk</Label>
+              <Bullet>{item.spreadsheetRisk}</Bullet>
+              <Label style={{ marginTop: 10 }}>Current state</Label>
+              <Bullet>{item.currentState}</Bullet>
+              <Label style={{ marginTop: 10 }}>Next control</Label>
+              <Bullet>{item.nextControl}</Bullet>
+            </div>
+          ))}
+        </div>
+      </Card>
+
+      <Card style={{ marginBottom: 24 }}>
+        <SectionTitle>DALA WMS vs Excel vs Inventory Ark</SectionTitle>
+        <div style={{ display: 'grid', gap: 14 }}>
+          {gapComparison.map((row) => (
+            <div key={row.capability} style={{ border: '1px solid #1a2224', borderRadius: 8, padding: 18, background: '#0b0f10' }}>
+              <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 17, color: '#e0e8ea', marginBottom: 10 }}>{row.capability}</div>
+              <Label>Excel / workbook</Label>
+              <Bullet>{row.excel}</Bullet>
+              <Label style={{ marginTop: 10 }}>Inventory Ark public positioning</Label>
+              <Bullet>{row.inventoryArk}</Bullet>
+              <Label style={{ marginTop: 10 }}>DALA WMS target position</Label>
+              <Bullet>{row.dala}</Bullet>
+            </div>
+          ))}
+        </div>
+      </Card>
+
+      <Card style={{ marginBottom: 24 }}>
+        <SectionTitle>Remaining High-Value Production Work</SectionTitle>
+        {remainingProductionWork.map((item, index) => (
+          <Bullet key={index}>{item}</Bullet>
+        ))}
+      </Card>
+
+      <Card style={{ marginBottom: 24 }}>
+        <SectionTitle>Implementation Roadmap</SectionTitle>
+        <div style={{ display: 'grid', gap: 14 }}>
+          {roadmapPhases.map((phase) => (
+            <div key={phase.phase} style={{ border: '1px solid #1a2224', borderRadius: 8, padding: 18, background: '#0b0f10' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'center', marginBottom: 8 }}>
+                <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 17, color: '#e0e8ea' }}>{phase.phase}: {phase.title}</div>
+              </div>
+              <div style={{ fontSize: 13, color: '#8aa0a6', marginBottom: 12 }}>{phase.target}</div>
+              {phase.actions.map((item, index) => (
+                <Bullet key={index}>{item}</Bullet>
+              ))}
+            </div>
+          ))}
+        </div>
       </Card>
 
       <Card style={{ marginBottom: 24 }}>

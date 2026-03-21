@@ -235,3 +235,130 @@ export const systemNarrative = [
   'Operational dashboards and alert pages depend on backend read models and aggregated stock queries so stock, expiry, reorder, and reconciliation screens stay aligned.',
   'Roles are enforced in both the app navigation and the Railway backend authorization layer.',
 ]
+
+export const spreadsheetEliminationMatrix = [
+  {
+    area: 'Goods receiving',
+    spreadsheetRisk: 'Duplicate rows, delayed posting, missing batch and expiry details.',
+    currentState: 'GRN flow with batch, cost, and expiry capture exists.',
+    nextControl: 'Add scan-first receiving, SKU-specific validation rules, and draft receiving queues.',
+    priority: 'P0',
+  },
+  {
+    area: 'Dispatch control',
+    spreadsheetRisk: 'Wrong issue order, missing confirmation trail, silent stock differences.',
+    currentState: 'FIFO dispatch and load confirmation are live.',
+    nextControl: 'Add pick-pack verification, barcode checks, and shortage exception workflows.',
+    priority: 'P0',
+  },
+  {
+    area: 'Expiry management',
+    spreadsheetRisk: 'Near-expiry stock is reviewed too late or missed entirely.',
+    currentState: 'Expiry alerts and threshold rules are live.',
+    nextControl: 'Add FEFO action queues, liquidation/return workflow, and overdue expiry escalation.',
+    priority: 'P0',
+  },
+  {
+    area: 'Physical count',
+    spreadsheetRisk: 'Counts happen offline, then get typed later with missing context.',
+    currentState: 'Count sessions and variance approvals are live.',
+    nextControl: 'Add mobile count mode, blind counts, and zone/bin sequencing.',
+    priority: 'P0',
+  },
+  {
+    area: 'Audit review',
+    spreadsheetRisk: 'Finance and Ops export data to investigate outside the system.',
+    currentState: 'Ledger and reports are live.',
+    nextControl: 'Add SKU/batch timelines, admin audit logs, and period-close dashboards.',
+    priority: 'P0',
+  },
+]
+
+export const gapComparison = [
+  {
+    capability: 'Source of truth',
+    excel: 'Fragmented and editable.',
+    inventoryArk: 'Centralized multi-channel dashboard from public positioning.',
+    dala: 'Warehouse system of record with immutable movement ledger.',
+  },
+  {
+    capability: 'Data validation',
+    excel: 'Weak and optional.',
+    inventoryArk: 'Not clear from public feature summary.',
+    dala: 'Strict SKU, unit, batch, expiry, and role validation.',
+  },
+  {
+    capability: 'FMCG batch control',
+    excel: 'Manual and error-prone.',
+    inventoryArk: 'Not emphasized publicly.',
+    dala: 'Core workflow with FIFO, expiry, casualties, and reconciliation.',
+  },
+  {
+    capability: 'Warehouse execution',
+    excel: 'Often offline-first.',
+    inventoryArk: 'Workflow automation positioned broadly.',
+    dala: 'Point-of-operation receiving, dispatch, count, and exception handling.',
+  },
+  {
+    capability: 'Auditability',
+    excel: 'Poor.',
+    inventoryArk: 'Secure data management mentioned.',
+    dala: 'Trace by SKU, batch, user, and approval.',
+  },
+]
+
+export const roadmapPhases = [
+  {
+    phase: 'Phase 1',
+    title: 'Operational Control Hardening',
+    target: 'Identity, auditability, and exception ownership.',
+    actions: [
+      'Add email delivery for invite and reset flows.',
+      'Add forced password rotation for reset or first-login users.',
+      'Add admin audit log views for user actions and access changes.',
+      'Capture admin action records in the Railway backend.',
+    ],
+  },
+  {
+    phase: 'Phase 2',
+    title: 'Exception-led Warehouse Workflow',
+    target: 'Replace ad hoc spreadsheet follow-up with work queues.',
+    actions: [
+      'Add dashboard inboxes for shortages, expiry, pending approvals, and unresolved variances.',
+      'Add reason-code enforcement and blocked-state handling for critical exceptions.',
+      'Add FEFO and action prompts for expiry-sensitive SKUs.',
+      'Improve count, receiving, and dispatch flows for mobile-floor execution.',
+    ],
+  },
+  {
+    phase: 'Phase 3',
+    title: 'Audit Superiority Over Spreadsheets',
+    target: 'Make investigations easier inside DALA WMS than in Excel.',
+    actions: [
+      'Add SKU timeline and batch timeline drilldowns.',
+      'Add locked period reporting and month-end close views.',
+      'Add PDF board packs with charts, commentary, and loss exposure.',
+      'Add discrepancy ageing and approval SLA reporting.',
+    ],
+  },
+  {
+    phase: 'Phase 4',
+    title: 'Resilience and Runbook',
+    target: 'Operational recovery and infrastructure readiness.',
+    actions: [
+      'Add database backup/restore runbook inside the app manual.',
+      'Add Railway recovery checklist and incident response steps.',
+      'Add recovery drill logging and owner sign-off.',
+      'Keep repo docs and embedded manual aligned in every release.',
+    ],
+  },
+]
+
+export const remainingProductionWork = [
+  'Add email delivery for invite links and reset notifications.',
+  'Add audit log views for admin actions, role changes, resets, and deactivations.',
+  'Add database backup/restore and Railway ops runbook inside the app manual.',
+  'Add SKU and batch timelines for investigations.',
+  'Add mobile-first count and receiving workflows.',
+  'Add dashboard task queues for discrepancies, expiries, and pending approvals.',
+]
