@@ -1,0 +1,11 @@
+node_modules
+dist
+preview-deploy
+
+.env
+.env.local
+.env.*.local
+
+.git
+how-it-works-preview.png
+preview-manual-inline.html
