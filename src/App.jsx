@@ -17,7 +17,8 @@ import Layout from './components/Layout'
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
-export const supabase = createClient(supabaseUrl, supabaseAnonKey)
+const hasSupabaseConfig = Boolean(supabaseUrl && supabaseAnonKey)
+export const supabase = hasSupabaseConfig ? createClient(supabaseUrl, supabaseAnonKey) : null
 
 export const AuthContext = createContext(null)
 export const useAuth = () => useContext(AuthContext)
@@ -31,6 +32,10 @@ export default function App() {
 
   if (previewMode === 'manual') {
     return <HowItWorksPage />
+  }
+
+  if (!hasSupabaseConfig) {
+    return <DeploymentSetupPage />
   }
 
   useEffect(() => {
@@ -103,6 +108,51 @@ function AccessDenied() {
   return (
     <div style={{ padding:48, textAlign:'center', color:'#ff6b35', fontFamily:'DM Mono, monospace', fontSize:13 }}>
       ACCESS DENIED — Your role does not permit viewing this page.
+    </div>
+  )
+}
+
+function DeploymentSetupPage() {
+  return (
+    <div style={{ minHeight: '100vh', background: '#0b0f10', color: '#e0e8ea', fontFamily: 'DM Sans, sans-serif', padding: '32px 20px 48px' }}>
+      <div style={{ maxWidth: 1120, margin: '0 auto' }}>
+        <div style={{ marginBottom: 28 }}>
+          <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 800, fontSize: 28, letterSpacing: '-0.03em' }}>
+            DALA <span style={{ color: '#00e5a0' }}>WMS</span>
+          </div>
+          <div style={{ fontFamily: 'DM Mono, monospace', fontSize: 11, color: '#3e555d', letterSpacing: '0.12em', textTransform: 'uppercase', marginTop: 4 }}>
+            Deployment Setup Required
+          </div>
+        </div>
+
+        <div style={{ background: '#111618', border: '1px solid #1a2224', borderRadius: 10, padding: 24, marginBottom: 24 }}>
+          <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 22, marginBottom: 8 }}>
+            This deployment is reviewable, but not connected to Supabase yet.
+          </div>
+          <div style={{ fontSize: 14, color: '#93a7ac', lineHeight: 1.6, marginBottom: 16 }}>
+            Set the two public Vite environment variables below in Railway, then redeploy. Until then, the embedded operator manual stays available so you can review the workflow and page model safely.
+          </div>
+          <div style={{ display: 'grid', gap: 12 }}>
+            <EnvRow name="VITE_SUPABASE_URL" value="https://YOUR_PROJECT_ID.supabase.co" />
+            <EnvRow name="VITE_SUPABASE_ANON_KEY" value="YOUR_SUPABASE_ANON_KEY" />
+          </div>
+        </div>
+
+        <HowItWorksPage />
+      </div>
+    </div>
+  )
+}
+
+function EnvRow({ name, value }) {
+  return (
+    <div style={{ background: '#0b0f10', border: '1px solid #1a2224', borderRadius: 8, padding: 14 }}>
+      <div style={{ fontFamily: 'DM Mono, monospace', fontSize: 11, color: '#00e5a0', letterSpacing: '0.08em', marginBottom: 6 }}>
+        {name}
+      </div>
+      <div style={{ fontFamily: 'DM Mono, monospace', fontSize: 12, color: '#70878d', wordBreak: 'break-all' }}>
+        {value}
+      </div>
     </div>
   )
 }
