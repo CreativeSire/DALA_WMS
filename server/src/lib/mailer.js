@@ -1,4 +1,7 @@
 import nodemailer from 'nodemailer'
+import { spawn } from 'node:child_process'
+import path from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { env } from '../config/env.js'
 
 function hasEmailConfig() {
@@ -26,26 +29,59 @@ function fromAddress() {
   return env.SMTP_FROM_NAME ? `"${env.SMTP_FROM_NAME}" <${env.SMTP_FROM_EMAIL}>` : env.SMTP_FROM_EMAIL
 }
 
+async function sendEmailViaProcess(message) {
+  const currentDir = path.dirname(fileURLToPath(import.meta.url))
+  const jobPath = path.resolve(currentDir, '../scripts/send-email-job.js')
+
+  return new Promise((resolve, reject) => {
+    const child = spawn(process.execPath, [jobPath], {
+      env: process.env,
+      stdio: ['pipe', 'pipe', 'pipe'],
+    })
+
+    let stdout = ''
+    let stderr = ''
+
+    child.stdout.on('data', (chunk) => {
+      stdout += chunk.toString()
+    })
+
+    child.stderr.on('data', (chunk) => {
+      stderr += chunk.toString()
+    })
+
+    child.on('error', reject)
+
+    child.on('close', (code) => {
+      if (code === 0) {
+        resolve(JSON.parse(stdout))
+        return
+      }
+
+      try {
+        reject(JSON.parse(stderr))
+      } catch {
+        reject(new Error(stderr || `Email process exited with code ${code}.`))
+      }
+    })
+
+    child.stdin.write(JSON.stringify(message))
+    child.stdin.end()
+  })
+}
+
 export async function sendEmail({ to, subject, html, text }) {
   if (!hasEmailConfig()) {
     return { status: 'disabled', message: 'SMTP is not configured.' }
   }
 
-  const emailTransport = createTransport()
-  const info = await emailTransport.sendMail({
+  return sendEmailViaProcess({
     from: fromAddress(),
     to,
     subject,
     text,
     html,
   })
-
-  return {
-    status: 'sent',
-    messageId: info.messageId,
-    accepted: info.accepted || [],
-    rejected: info.rejected || [],
-  }
 }
 
 export function emailConfigured() {
