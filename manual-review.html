@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>DALA WMS Manual Review</title>
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap');
+      * { box-sizing: border-box; }
+      body { margin: 0; background: #0b0f10; color: #e0e8ea; font-family: 'DM Sans', sans-serif; }
+      .app { display: flex; min-height: 100vh; }
+      .sidebar { width: 234px; background: #0f1416; border-right: 1px solid #1a2224; padding-bottom: 20px; }
+      .logo { padding: 22px 20px 18px; border-bottom: 1px solid #1a2224; }
+      .logo h1 { margin: 0; font-family: 'Syne', sans-serif; font-size: 19px; font-weight: 800; }
+      .logo h1 span { color: #00e5a0; }
+      .logo small { display: block; margin-top: 3px; font-family: 'DM Mono', monospace; font-size: 10px; color: #2a3840; letter-spacing: 0.12em; text-transform: uppercase; }
+      .nav { padding: 14px 10px; }
+      .nav-section { font-family: 'DM Mono', monospace; font-size: 9px; color: #1e2c30; letter-spacing: 0.18em; text-transform: uppercase; padding: 12px 10px 4px; }
+      .nav-item { display: flex; align-items: center; gap: 9px; padding: 9px 10px; border-radius: 5px; color: #4a6068; font-size: 13px; }
+      .nav-item.active { background: rgba(0,229,160,0.08); color: #00e5a0; border-left: 2px solid #00e5a0; }
+      .main { flex: 1; }
+      .topbar { height: 54px; background: #0f1416; border-bottom: 1px solid #1a2224; display: flex; align-items: center; padding: 0 20px; }
+      .topbar .title { font-family: 'Syne', sans-serif; font-size: 15px; font-weight: 700; }
+      .content { padding: 24px 20px 40px; }
+      .page-title { font-family: 'Syne', sans-serif; font-size: 22px; font-weight: 800; letter-spacing: -0.02em; margin: 0; }
+      .subtitle { color: #4a6068; font-size: 13px; margin-top: 4px; margin-bottom: 28px; }
+      .grid { display: grid; gap: 16px; }
+      .grid.two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .card { background: #111618; border: 1px solid #1a2224; border-radius: 8px; padding: 24px; }
+      .section-title { font-family: 'Syne', sans-serif; font-size: 20px; font-weight: 800; margin: 0 0 14px; }
+      .bullet { display: flex; gap: 10px; margin-bottom: 8px; align-items: flex-start; }
+      .bullet .mark { color: #00e5a0; font-family: 'DM Mono', monospace; }
+      .bullet .text { color: #a8bcc0; font-size: 13px; line-height: 1.5; }
+      .role-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+      .mini-card { border: 1px solid #1a2224; border-radius: 8px; padding: 18px; background: #0b0f10; }
+      .row { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 8px; }
+      .role-name, .page-name { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 17px; }
+      .badge { display: inline-block; padding: 2px 8px; border-radius: 2px; font-family: 'DM Mono', monospace; font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; background: rgba(0,229,160,0.09); border: 1px solid rgba(0,229,160,0.2); color: #00e5a0; }
+      .badge.blue { background: rgba(79,195,247,0.09); border-color: rgba(79,195,247,0.2); color: #4fc3f7; }
+      .summary { font-size: 13px; color: #8aa0a6; margin-bottom: 12px; }
+      .label { font-family: 'DM Mono', monospace; font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: #4a6068; margin: 14px 0 8px; }
+      .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+      .page-list { display: grid; gap: 14px; }
+      @media (max-width: 1100px) {
+        .app { display: block; }
+        .sidebar { display: none; }
+        .grid.two, .role-grid { grid-template-columns: 1fr; }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app">
+      <aside class="sidebar">
+        <div class="logo">
+          <h1>DALA <span>WMS</span></h1>
+          <small>Warehouse Management System</small>
+        </div>
+        <div class="nav">
+          <div class="nav-section">Overview</div>
+          <div class="nav-item">◈ Dashboard</div>
+          <div class="nav-item active">? How It Works</div>
+          <div class="nav-section">Stock Operations</div>
+          <div class="nav-item">↓ Stock Intake (GRN)</div>
+          <div class="nav-item">↑ Dispatch</div>
+          <div class="nav-item">≡ Ledger</div>
+        </div>
+      </aside>
+      <main class="main">
+        <div class="topbar">
+          <div class="title">How It Works</div>
+          <div style="margin-left:auto;color:#2a3840;font-family:'DM Mono',monospace;font-size:11px;">Standalone review page</div>
+        </div>
+        <div class="content">
+          <h1 class="page-title">How It Works</h1>
+          <div class="subtitle">Operator manual, role guide, and current-system workflow reference</div>
+
+          <section class="grid two">
+            <div class="card">
+              <h2 class="section-title">System Model</h2>
+              <div class="bullet"><span class="mark">+</span><span class="text">The system is batch-based. Every inbound receipt becomes one or more stock batches, and every outbound or corrective action adjusts those batch balances.</span></div>
+              <div class="bullet"><span class="mark">+</span><span class="text">The ledger is immutable. Stock movements are appended for GRNs, dispatches, write-offs, and count adjustments instead of editing history in place.</span></div>
+              <div class="bullet"><span class="mark">+</span><span class="text">Operational dashboards and alert pages depend on SQL views, not duplicated frontend calculations, so stock, expiry, reorder, and reconciliation screens stay aligned.</span></div>
+              <div class="bullet"><span class="mark">+</span><span class="text">Roles are enforced twice: in the app navigation and inside Supabase Row Level Security.</span></div>
+            </div>
+            <div class="card">
+              <h2 class="section-title">Latest System Changes</h2>
+              <div class="bullet"><span class="mark">+</span><span class="text">User administration now runs through a server-side Supabase Edge Function for invite/create operations instead of attempting admin auth calls in the browser.</span></div>
+              <div class="bullet"><span class="mark">+</span><span class="text">Dispatch allocation now validates against freshly fetched batch data and uses FIFO consistently during save.</span></div>
+              <div class="bullet"><span class="mark">+</span><span class="text">Physical count approvals now create reconciliation batches for positive variances when no active stock batch exists.</span></div>
+              <div class="bullet"><span class="mark">+</span><span class="text">A deploy script is now included for the user-admin Edge Function so admin onboarding can be shipped consistently.</span></div>
+              <div class="bullet"><span class="mark">+</span><span class="text">This in-app manual was added so operators can review the current process without leaving the system.</span></div>
+            </div>
+          </section>
+
+          <section class="card" style="margin-top:24px;">
+            <h2 class="section-title">Admin Setup Checklist</h2>
+            <div class="bullet"><span class="mark">+</span><span class="text">Deploy the user-admin Edge Function with <code>npm run deploy:user-admin</code> after exporting <code>SUPABASE_SERVICE_ROLE_KEY</code> in your shell.</span></div>
+            <div class="bullet"><span class="mark">+</span><span class="text">If the Supabase project is not linked locally, pass the project reference to the script with <code>-ProjectRef &lt;project-ref&gt;</code>.</span></div>
+            <div class="bullet"><span class="mark">+</span><span class="text">Open the Users page as an admin and choose either Invite User or Create User.</span></div>
+            <div class="bullet"><span class="mark">+</span><span class="text">Use Invite when the person should set their own password from email. Use Create when you need to hand over a temporary password directly.</span></div>
+            <div class="bullet"><span class="mark">+</span><span class="text">Confirm that every new user has the correct role because page access and database permissions depend on it.</span></div>
+            <div class="bullet"><span class="mark">+</span><span class="text">When workflow, permissions, or onboarding rules change, update this manual file in the same code change.</span></div>
+          </section>
+
+          <section class="card" style="margin-top:24px;">
+            <h2 class="section-title">Roles</h2>
+            <div class="role-grid">
+              <div class="mini-card">
+                <div class="row"><div class="role-name">Admin</div><span class="badge">14 pages</span></div>
+                <div class="summary">Full-system control. Owns user administration, threshold policy, approvals, and final operational oversight.</div>
+                <div class="label">Access</div>
+                <div class="chips">
+                  <span class="badge blue">Dashboard</span><span class="badge blue">How It Works</span><span class="badge blue">GRN</span><span class="badge blue">Dispatch</span><span class="badge blue">Ledger</span><span class="badge blue">Expiry</span><span class="badge blue">Casualties</span><span class="badge blue">Reorder</span><span class="badge blue">Partner Performance</span><span class="badge blue">Physical Count</span><span class="badge blue">Reports</span><span class="badge blue">Products</span><span class="badge blue">Brand Partners</span><span class="badge blue">Users</span>
+                </div>
+              </div>
+              <div class="mini-card">
+                <div class="row"><div class="role-name">Warehouse Manager</div><span class="badge">11 pages</span></div>
+                <div class="summary">Runs daily warehouse execution. Owns receiving, stock accuracy, batch visibility, and operational data quality.</div>
+                <div class="label">Access</div>
+                <div class="chips">
+                  <span class="badge blue">Dashboard</span><span class="badge blue">How It Works</span><span class="badge blue">GRN</span><span class="badge blue">Dispatch</span><span class="badge blue">Ledger</span><span class="badge blue">Expiry</span><span class="badge blue">Casualties</span><span class="badge blue">Reorder</span><span class="badge blue">Physical Count</span><span class="badge blue">Reports</span><span class="badge blue">Products</span>
+                </div>
+              </div>
+              <div class="mini-card">
+                <div class="row"><div class="role-name">Operations</div><span class="badge">12 pages</span></div>
+                <div class="summary">Controls approvals, outbound flow, and inventory governance.</div>
+                <div class="label">Access</div>
+                <div class="chips">
+                  <span class="badge blue">Dashboard</span><span class="badge blue">How It Works</span><span class="badge blue">Dispatch</span><span class="badge blue">Ledger</span><span class="badge blue">Expiry</span><span class="badge blue">Casualties</span><span class="badge blue">Reorder</span><span class="badge blue">Partner Performance</span><span class="badge blue">Physical Count</span><span class="badge blue">Reports</span><span class="badge blue">Products</span><span class="badge blue">Brand Partners</span>
+                </div>
+              </div>
+              <div class="mini-card">
+                <div class="row"><div class="role-name">Finance</div><span class="badge">7 pages</span></div>
+                <div class="summary">Reads stock risk, ageing, and reconciliation outputs to understand exposure and reporting.</div>
+                <div class="label">Access</div>
+                <div class="chips">
+                  <span class="badge blue">Dashboard</span><span class="badge blue">How It Works</span><span class="badge blue">Ledger</span><span class="badge blue">Expiry</span><span class="badge blue">Reorder</span><span class="badge blue">Partner Performance</span><span class="badge blue">Reports</span>
+                </div>
+              </div>
+              <div class="mini-card">
+                <div class="row"><div class="role-name">Security</div><span class="badge">3 pages</span></div>
+                <div class="summary">Verifies that prepared outbound stock physically exits the warehouse.</div>
+                <div class="label">Access</div>
+                <div class="chips">
+                  <span class="badge blue">Dashboard</span><span class="badge blue">How It Works</span><span class="badge blue">Dispatch</span>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section class="card" style="margin-top:24px;">
+            <h2 class="section-title">Pages</h2>
+            <div class="page-list">
+              <div class="mini-card"><div class="row"><div class="page-name">Dashboard</div><span class="badge">dashboard</span></div><div class="summary" style="margin-bottom:0;color:#b5c3c7;">Operational command center for the day.</div></div>
+              <div class="mini-card"><div class="row"><div class="page-name">How it Works</div><span class="badge">how-it-works</span></div><div class="summary" style="margin-bottom:0;color:#b5c3c7;">Embedded operator manual and change log.</div></div>
+              <div class="mini-card"><div class="row"><div class="page-name">Stock Intake (GRN)</div><span class="badge">grn</span></div><div class="summary" style="margin-bottom:0;color:#b5c3c7;">Records inbound goods from brand partners.</div></div>
+              <div class="mini-card"><div class="row"><div class="page-name">Dispatch</div><span class="badge">dispatch</span></div><div class="summary" style="margin-bottom:0;color:#b5c3c7;">Creates and confirms outbound stock movements.</div></div>
+              <div class="mini-card"><div class="row"><div class="page-name">Ledger</div><span class="badge">ledger</span></div><div class="summary" style="margin-bottom:0;color:#b5c3c7;">Shows live stock and the full audit trail of inventory movement.</div></div>
+              <div class="mini-card"><div class="row"><div class="page-name">Expiry Tracking</div><span class="badge">expiry</span></div><div class="summary" style="margin-bottom:0;color:#b5c3c7;">Tracks near-expiry and expired stock by batch.</div></div>
+              <div class="mini-card"><div class="row"><div class="page-name">Casualties</div><span class="badge">casualties</span></div><div class="summary" style="margin-bottom:0;color:#b5c3c7;">Logs and approves stock write-offs.</div></div>
+              <div class="mini-card"><div class="row"><div class="page-name">Reorder Alerts</div><span class="badge">reorder</span></div><div class="summary" style="margin-bottom:0;color:#b5c3c7;">Highlights SKUs at or below configured reorder thresholds.</div></div>
+              <div class="mini-card"><div class="row"><div class="page-name">Brand Partner Performance</div><span class="badge">performance</span></div><div class="summary" style="margin-bottom:0;color:#b5c3c7;">Summarizes partner stock, expiry risk, and receiving history.</div></div>
+              <div class="mini-card"><div class="row"><div class="page-name">Physical Count</div><span class="badge">count</span></div><div class="summary" style="margin-bottom:0;color:#b5c3c7;">Reconciles physical warehouse stock against system stock.</div></div>
+              <div class="mini-card"><div class="row"><div class="page-name">Reports &amp; Export</div><span class="badge">reports</span></div><div class="summary" style="margin-bottom:0;color:#b5c3c7;">Generates operational and analytical exports.</div></div>
+              <div class="mini-card"><div class="row"><div class="page-name">Products</div><span class="badge">products</span></div><div class="summary" style="margin-bottom:0;color:#b5c3c7;">Maintains the SKU master list.</div></div>
+              <div class="mini-card"><div class="row"><div class="page-name">Brand Partners</div><span class="badge">partners</span></div><div class="summary" style="margin-bottom:0;color:#b5c3c7;">Maintains supplier/partner records.</div></div>
+              <div class="mini-card"><div class="row"><div class="page-name">Users</div><span class="badge">users</span></div><div class="summary" style="margin-bottom:0;color:#b5c3c7;">Administers system access.</div></div>
+            </div>
+          </section>
+        </div>
+      </main>
+    </div>
+  </body>
+</html>
