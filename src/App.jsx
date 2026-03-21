@@ -104,9 +104,7 @@ export default function App() {
   }
 
   if (loading) return (
-    <div style={{ minHeight:'100vh', display:'flex', alignItems:'center', justifyContent:'center', background:'#0b0f10', color:'#00e5a0', fontFamily:'DM Mono, monospace', fontSize:13, letterSpacing:'0.1em' }}>
-      LOADING DALA WMS...
-    </div>
+    <LoadingScreen />
   )
 
   if (!session) return (
@@ -151,54 +149,209 @@ export default function App() {
 
 function AccessDenied() {
   return (
-    <div style={{ padding:48, textAlign:'center', color:'#ff6b35', fontFamily:'DM Mono, monospace', fontSize:13 }}>
-      ACCESS DENIED — Your role does not permit viewing this page.
-    </div>
+    <ScreenFrame
+      eyebrow="Restricted"
+      title="Access denied"
+      copy="Your assigned role does not permit this module. Use a role with the correct operational scope or return to a page you can access."
+      accent="#ff8552"
+    />
   )
 }
 
 function DeploymentSetupPage() {
   return (
-    <div style={{ minHeight: '100vh', background: '#0b0f10', color: '#e0e8ea', fontFamily: 'DM Sans, sans-serif', padding: '32px 20px 48px' }}>
-      <div style={{ maxWidth: 1120, margin: '0 auto' }}>
-        <div style={{ marginBottom: 28 }}>
-          <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 800, fontSize: 28, letterSpacing: '-0.03em' }}>
-            DALA <span style={{ color: '#00e5a0' }}>WMS</span>
+    <div style={setupShellStyle}>
+      <style>{setupStyles}</style>
+      <div style={setupOrbStyle('10%', '8%', '#2be3b4')} />
+      <div style={setupOrbStyle('58%', '12%', '#ff8552')} />
+      <div style={setupOrbStyle('auto', '42%', '#6dc6ff', '72%')} />
+
+      <div style={{ maxWidth: 1180, margin: '0 auto', position: 'relative', zIndex: 1 }}>
+        <div style={{ marginBottom: 24 }}>
+          <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 800, fontSize: 34, letterSpacing: '-0.04em', color: '#f4fbf8' }}>
+            DALA <span style={{ color: '#2be3b4' }}>WMS</span>
           </div>
-          <div style={{ fontFamily: 'DM Mono, monospace', fontSize: 11, color: '#3e555d', letterSpacing: '0.12em', textTransform: 'uppercase', marginTop: 4 }}>
+          <div style={{ fontFamily: 'DM Mono, monospace', fontSize: 11, color: '#6f858d', letterSpacing: '0.16em', textTransform: 'uppercase', marginTop: 6 }}>
             Deployment Setup Required
           </div>
         </div>
 
-        <div style={{ background: '#111618', border: '1px solid #1a2224', borderRadius: 10, padding: 24, marginBottom: 24 }}>
-          <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 22, marginBottom: 8 }}>
-            This deployment is reviewable, but no data backend is configured yet.
+        <div className="setup-grid" style={setupGridStyle}>
+          <div style={setupIntroCardStyle}>
+            <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 800, fontSize: 34, lineHeight: 1.02, color: '#f2f8f6', letterSpacing: '-0.04em' }}>
+              This deployment needs its backend target before the live app can open.
+            </div>
+            <div style={{ marginTop: 16, fontSize: 15, lineHeight: 1.7, color: '#98aeb2', maxWidth: 680 }}>
+              Point the frontend at the Railway API service using `VITE_API_BASE_URL` and redeploy. The setup screen is only a guard rail so blank environments do not crash.
+            </div>
+
+            <div style={setupChecklistCardStyle}>
+              <SetupBullet>Use the active app domain, not an old Railway alias.</SetupBullet>
+              <SetupBullet>Set `VITE_API_BASE_URL` to your Railway API public URL.</SetupBullet>
+              <SetupBullet>Confirm the API service is healthy before redeploying the frontend.</SetupBullet>
+            </div>
           </div>
-          <div style={{ fontSize: 14, color: '#93a7ac', lineHeight: 1.6, marginBottom: 16 }}>
-            Configure either the legacy Supabase frontend variables or the new Railway backend API base URL, then redeploy. Until then, the embedded operator manual stays available so you can review the workflow and page model safely.
-          </div>
-          <div style={{ display: 'grid', gap: 12 }}>
-            <EnvRow name="VITE_API_BASE_URL" value="https://your-railway-api.up.railway.app" />
-            <EnvRow name="VITE_SUPABASE_URL" value="https://YOUR_PROJECT_ID.supabase.co" />
-            <EnvRow name="VITE_SUPABASE_ANON_KEY" value="YOUR_SUPABASE_ANON_KEY" />
+
+          <div style={setupVarsCardStyle}>
+            <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 22, color: '#f2f8f6', marginBottom: 10 }}>
+              Required environment
+            </div>
+            <div style={{ fontSize: 14, color: '#8ea4a9', lineHeight: 1.6, marginBottom: 18 }}>
+              For the Railway backend deployment path, only the API base URL is required on the frontend.
+            </div>
+            <div style={{ display: 'grid', gap: 12 }}>
+              <EnvRow name="VITE_API_BASE_URL" value="https://your-railway-api.up.railway.app" />
+              <EnvRow name="VITE_SUPABASE_URL" value="Optional only if you still run the Supabase fallback path" />
+              <EnvRow name="VITE_SUPABASE_ANON_KEY" value="Optional only if you still run the Supabase fallback path" />
+            </div>
           </div>
         </div>
 
-        <HowItWorksPage />
+        <div style={{ marginTop: 24 }}>
+          <HowItWorksPage />
+        </div>
       </div>
     </div>
+  )
+}
+
+function LoadingScreen() {
+  return (
+    <ScreenFrame
+      eyebrow="Loading"
+      title="Starting the live workspace"
+      copy="The frontend is checking your configured backend and restoring the active session."
+      accent="#2be3b4"
+    />
   )
 }
 
 function EnvRow({ name, value }) {
   return (
-    <div style={{ background: '#0b0f10', border: '1px solid #1a2224', borderRadius: 8, padding: 14 }}>
-      <div style={{ fontFamily: 'DM Mono, monospace', fontSize: 11, color: '#00e5a0', letterSpacing: '0.08em', marginBottom: 6 }}>
+    <div style={{ background: 'rgba(5,10,12,0.7)', border: '1px solid rgba(126, 155, 160, 0.12)', borderRadius: 16, padding: 16 }}>
+      <div style={{ fontFamily: 'DM Mono, monospace', fontSize: 11, color: '#2be3b4', letterSpacing: '0.12em', marginBottom: 8 }}>
         {name}
       </div>
-      <div style={{ fontFamily: 'DM Mono, monospace', fontSize: 12, color: '#70878d', wordBreak: 'break-all' }}>
+      <div style={{ fontFamily: 'DM Mono, monospace', fontSize: 12, color: '#7f969d', wordBreak: 'break-all', lineHeight: 1.6 }}>
         {value}
       </div>
     </div>
   )
 }
+
+function SetupBullet({ children }) {
+  return (
+    <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start', marginBottom: 10 }}>
+      <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#2be3b4', marginTop: 7, flexShrink: 0 }} />
+      <span style={{ color: '#b8c9cb', fontSize: 14, lineHeight: 1.6 }}>{children}</span>
+    </div>
+  )
+}
+
+function ScreenFrame({ eyebrow, title, copy, accent }) {
+  return (
+    <div style={screenShellStyle}>
+      <style>{setupStyles}</style>
+      <div style={setupOrbStyle('12%', '9%', accent)} />
+      <div style={setupOrbStyle('60%', '12%', '#6dc6ff')} />
+      <div style={{
+        maxWidth: 760,
+        margin: '0 auto',
+        padding: '40px 32px',
+        borderRadius: 28,
+        border: '1px solid rgba(126, 155, 160, 0.12)',
+        background: 'linear-gradient(180deg, rgba(15,28,30,0.96) 0%, rgba(8,15,17,0.98) 100%)',
+        boxShadow: '0 26px 70px rgba(0,0,0,0.28)',
+        position: 'relative',
+        zIndex: 1,
+      }}>
+        <div style={{ fontFamily: 'DM Mono, monospace', fontSize: 11, letterSpacing: '0.18em', textTransform: 'uppercase', color: accent, marginBottom: 14 }}>
+          {eyebrow}
+        </div>
+        <div style={{ fontFamily: 'Syne, sans-serif', fontSize: 38, fontWeight: 800, lineHeight: 1.02, letterSpacing: '-0.05em', color: '#f4fbf8' }}>
+          {title}
+        </div>
+        <div style={{ marginTop: 16, color: '#97adb1', fontSize: 15, lineHeight: 1.7 }}>
+          {copy}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+const screenShellStyle = {
+  minHeight: '100vh',
+  display: 'grid',
+  placeItems: 'center',
+  padding: 24,
+  background: '#071012',
+  position: 'relative',
+  overflow: 'hidden',
+}
+
+const setupShellStyle = {
+  minHeight: '100vh',
+  background: '#071012',
+  color: '#e0e8ea',
+  fontFamily: 'DM Sans, sans-serif',
+  padding: '32px 18px 48px',
+  position: 'relative',
+  overflow: 'hidden',
+}
+
+const setupGridStyle = {
+  display: 'grid',
+  gridTemplateColumns: '1.1fr 0.9fr',
+  gap: 20,
+}
+
+const setupIntroCardStyle = {
+  borderRadius: 28,
+  padding: '34px 30px',
+  border: '1px solid rgba(126, 155, 160, 0.12)',
+  background: 'linear-gradient(180deg, rgba(14,26,28,0.96) 0%, rgba(8,15,17,0.98) 100%)',
+  boxShadow: '0 24px 70px rgba(0,0,0,0.26)',
+}
+
+const setupChecklistCardStyle = {
+  marginTop: 24,
+  borderRadius: 20,
+  border: '1px solid rgba(126, 155, 160, 0.12)',
+  background: 'rgba(255,255,255,0.03)',
+  padding: '18px 18px 8px',
+}
+
+const setupVarsCardStyle = {
+  borderRadius: 28,
+  padding: '30px 26px',
+  border: '1px solid rgba(126, 155, 160, 0.12)',
+  background: 'linear-gradient(180deg, rgba(18,29,32,0.96) 0%, rgba(9,17,19,0.98) 100%)',
+  boxShadow: '0 24px 70px rgba(0,0,0,0.26)',
+}
+
+function setupOrbStyle(top, right, color, left = 'auto') {
+  return {
+    position: 'fixed',
+    top,
+    right,
+    left,
+    width: 280,
+    height: 280,
+    borderRadius: '50%',
+    background: `radial-gradient(circle, ${color}22 0%, transparent 70%)`,
+    filter: 'blur(22px)',
+    pointerEvents: 'none',
+  }
+}
+
+const setupStyles = `
+  @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap');
+
+  * { box-sizing: border-box; }
+
+  @media (max-width: 960px) {
+    .setup-grid {
+      grid-template-columns: 1fr !important;
+    }
+  }
+`

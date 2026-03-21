@@ -1,19 +1,19 @@
 // Update this file whenever a workflow, permission, or operational step changes.
 export const latestChanges = [
-  'User administration now runs through a server-side Supabase Edge Function for invite/create operations instead of attempting admin auth calls in the browser.',
-  'Dispatch allocation now validates against freshly fetched batch data and uses FIFO consistently during save.',
-  'Physical count approvals now create reconciliation batches for positive variances when no active stock batch exists.',
-  'A deploy script is now included for the user-admin Edge Function so admin onboarding can be shipped consistently.',
-  'This in-app manual was added so operators can review the current process without leaving the system.',
+  'The live deployment now runs against the Railway backend and Railway Postgres instead of frontend-direct Supabase queries.',
+  'Inventory pages, reports, partner summaries, and count sessions are now wired to the Railway API for production review.',
+  'Dispatch allocation validates against freshly fetched batch data and applies FIFO consistently during save.',
+  'Physical count approvals create reconciliation batches for positive variances when no active stock batch exists.',
+  'The app shell, shared UI system, and operator manual are embedded directly in the live product so training and operations stay aligned.',
 ]
 
 export const adminSetupChecklist = [
-  'Deploy the user-admin Edge Function with `npm run deploy:user-admin` after exporting `SUPABASE_SERVICE_ROLE_KEY` in your shell.',
-  'If the Supabase project is not linked locally, pass the project reference to the script with `-ProjectRef <project-ref>`.',
-  'Open the Users page as an admin and choose either Invite User or Create User.',
-  'Use Invite when the person should set their own password from email. Use Create when you need to hand over a temporary password directly.',
-  'Confirm that every new user has the correct role because page access and database permissions depend on it.',
-  'When workflow, permissions, or onboarding rules change, update this manual file in the same code change.',
+  'Set `VITE_API_BASE_URL` on the Railway frontend service to the public API URL of the Railway backend service.',
+  'Set `DATABASE_URL`, `JWT_SECRET`, `FRONTEND_ORIGIN`, and the bootstrap admin credentials on the Railway API service.',
+  'Run the backend bootstrap against Railway Postgres whenever schema changes are introduced so live tables stay in sync.',
+  'Open the Users page as an admin and create or invite users with the correct roles before broad team access.',
+  'Rotate the bootstrap admin password immediately after first login and keep environment secrets in Railway only.',
+  'When workflow, permissions, infrastructure, or onboarding rules change, update this manual in the same code change.',
 ]
 
 export const roleGuides = [
@@ -221,9 +221,9 @@ export const pageGuides = [
     title: 'Users',
     purpose: 'Administers system access.',
     howItWorks: [
-      'Admin users can invite new users by email or create them with a temporary password through a server-side function.',
+      'Admin users can create or invite users through the Railway backend user administration flow.',
       'The page also toggles profile active status for existing users.',
-      'User roles determine page access and RLS permissions in the database.',
+      'User roles determine page access and backend authorization permissions.',
     ],
     useWhen: 'Use for onboarding, access control, and offboarding.',
   },
@@ -232,6 +232,6 @@ export const pageGuides = [
 export const systemNarrative = [
   'The system is batch-based. Every inbound receipt becomes one or more stock batches, and every outbound or corrective action adjusts those batch balances.',
   'The ledger is immutable. Stock movements are appended for GRNs, dispatches, write-offs, and count adjustments instead of editing history in place.',
-  'Operational dashboards and alert pages depend on SQL views, not duplicated frontend calculations, so stock, expiry, reorder, and reconciliation screens stay aligned.',
-  'Roles are enforced twice: in the app navigation and inside Supabase Row Level Security.',
+  'Operational dashboards and alert pages depend on backend read models and aggregated stock queries so stock, expiry, reorder, and reconciliation screens stay aligned.',
+  'Roles are enforced in both the app navigation and the Railway backend authorization layer.',
 ]
