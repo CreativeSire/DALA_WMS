@@ -45,6 +45,8 @@ async function deliverEmail(action, targetEmail, job) {
     return {
       status: 'failed',
       error: error.message,
+      code: error.code || null,
+      command: error.command || null,
       action,
       targetEmail,
     }
@@ -116,7 +118,14 @@ usersRouter.post(
       targetUserId: null,
       action: emailResult.status === 'sent' ? 'email_delivery_sent' : 'email_delivery_failed',
       summary: `Invite email ${emailResult.status === 'sent' ? 'sent' : 'not sent'} for ${invite.email}.`,
-      details: { invite_email: invite.email, status: emailResult.status, invite_url: inviteUrl },
+      details: {
+        invite_email: invite.email,
+        status: emailResult.status,
+        invite_url: inviteUrl,
+        error: emailResult.error || null,
+        code: emailResult.code || null,
+        command: emailResult.command || null,
+      },
     })
     await createAdminAuditLog({
       actorUserId: req.user.sub,
@@ -134,6 +143,7 @@ usersRouter.post(
       invite_url: inviteUrl,
       token,
       email_status: emailResult.status,
+      email_error: emailResult.error || null,
     })
   }),
 )
@@ -204,7 +214,13 @@ usersRouter.post(
       targetUserId: updated.id,
       action: emailResult.status === 'sent' ? 'email_delivery_sent' : 'email_delivery_failed',
       summary: `Password reset email ${emailResult.status === 'sent' ? 'sent' : 'not sent'} for ${updated.email}.`,
-      details: { email: updated.email, status: emailResult.status },
+      details: {
+        email: updated.email,
+        status: emailResult.status,
+        error: emailResult.error || null,
+        code: emailResult.code || null,
+        command: emailResult.command || null,
+      },
     })
 
     res.json({
@@ -214,6 +230,7 @@ usersRouter.post(
       user: sanitizeUser(updated),
       temporary_password: temporaryPassword,
       email_status: emailResult.status,
+      email_error: emailResult.error || null,
     })
   }),
 )
