@@ -18,8 +18,8 @@ Core rule:
 
 ## What has now been implemented
 
-- Invite emails can be sent from the Railway backend when SMTP settings are added.
-- Password reset emails can be sent from the Railway backend when SMTP settings are added.
+- Invite emails can be sent from the Railway backend when Resend or SMTP settings are added.
+- Password reset emails can be sent from the Railway backend when Resend or SMTP settings are added.
 - Admin audit logs now record key access-control actions.
 - The live app now includes a plain-language backup and restore runbook in `How It Works`.
 - Visual workflow pictures are now embedded in the manual so operators can follow the main warehouse flows more easily.

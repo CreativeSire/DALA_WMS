@@ -5,12 +5,13 @@ export const latestChanges = [
   'Dispatch allocation validates against freshly fetched batch data and applies FIFO consistently during save.',
   'Physical count approvals create reconciliation batches for positive variances when no active stock batch exists.',
   'The app shell, shared UI system, and operator manual are embedded directly in the live product so training and operations stay aligned.',
-  'Invite emails, password reset emails, and admin audit logs are now part of the live Railway path when email settings are added.',
+  'Invite emails, password reset emails, and admin audit logs are now part of the live Railway path when Resend or SMTP email settings are added.',
 ]
 
 export const adminSetupChecklist = [
   'Set `VITE_API_BASE_URL` on the Railway frontend service to the public API URL of the Railway backend service.',
   'Set `DATABASE_URL`, `JWT_SECRET`, `FRONTEND_ORIGIN`, and the bootstrap admin credentials on the Railway API service.',
+  'For email delivery, prefer `RESEND_API_KEY` and `RESEND_FROM_EMAIL` on the Railway API service. Keep SMTP only as a fallback.',
   'Run the backend bootstrap against Railway Postgres whenever schema changes are introduced so live tables stay in sync.',
   'Open the Users page as an admin and create or invite users with the correct roles before broad team access.',
   'Rotate the bootstrap admin password immediately after first login and keep environment secrets in Railway only.',

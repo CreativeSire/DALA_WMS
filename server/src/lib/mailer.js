@@ -4,7 +4,11 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { env } from '../config/env.js'
 
-function hasEmailConfig() {
+function hasResendConfig() {
+  return Boolean(env.RESEND_API_KEY && env.RESEND_FROM_EMAIL)
+}
+
+function hasSmtpConfig() {
   return Boolean(env.SMTP_HOST && env.SMTP_PORT && env.SMTP_USER && env.SMTP_PASS && env.SMTP_FROM_EMAIL)
 }
 
@@ -27,6 +31,53 @@ function createTransport() {
 function fromAddress() {
   if (!env.SMTP_FROM_EMAIL) return undefined
   return env.SMTP_FROM_NAME ? `"${env.SMTP_FROM_NAME}" <${env.SMTP_FROM_EMAIL}>` : env.SMTP_FROM_EMAIL
+}
+
+function resendFromAddress() {
+  if (!env.RESEND_FROM_EMAIL) return undefined
+  return env.RESEND_FROM_NAME ? `${env.RESEND_FROM_NAME} <${env.RESEND_FROM_EMAIL}>` : env.RESEND_FROM_EMAIL
+}
+
+async function sendViaResend({ to, subject, html, text }) {
+  const controller = new AbortController()
+  const timeout = setTimeout(() => controller.abort(), 15000)
+
+  try {
+    const response = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${env.RESEND_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        from: resendFromAddress(),
+        to: Array.isArray(to) ? to : [to],
+        subject,
+        html,
+        text,
+        reply_to: env.RESEND_REPLY_TO || undefined,
+      }),
+      signal: controller.signal,
+    })
+
+    const payload = await response.json().catch(() => ({}))
+
+    if (!response.ok) {
+      const error = new Error(payload?.message || payload?.error || `Resend request failed with status ${response.status}.`)
+      error.code = `RESEND_${response.status}`
+      throw error
+    }
+
+    return {
+      status: 'sent',
+      provider: 'resend',
+      messageId: payload?.id || null,
+      accepted: Array.isArray(to) ? to : [to],
+      rejected: [],
+    }
+  } finally {
+    clearTimeout(timeout)
+  }
 }
 
 async function sendEmailViaProcess(message) {
@@ -71,8 +122,12 @@ async function sendEmailViaProcess(message) {
 }
 
 export async function sendEmail({ to, subject, html, text }) {
-  if (!hasEmailConfig()) {
-    return { status: 'disabled', message: 'SMTP is not configured.' }
+  if (hasResendConfig()) {
+    return sendViaResend({ to, subject, html, text })
+  }
+
+  if (!hasSmtpConfig()) {
+    return { status: 'disabled', message: 'No email provider is configured.' }
   }
 
   return sendEmailViaProcess({
@@ -85,5 +140,5 @@ export async function sendEmail({ to, subject, html, text }) {
 }
 
 export function emailConfigured() {
-  return hasEmailConfig()
+  return hasResendConfig() || hasSmtpConfig()
 }

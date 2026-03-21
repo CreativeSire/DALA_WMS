@@ -31,6 +31,10 @@ Copy `.env.example` to `.env` and fill in:
 - `DATABASE_URL`
 - `JWT_SECRET`
 - `FRONTEND_ORIGIN`
+- `RESEND_API_KEY`
+- `RESEND_FROM_EMAIL`
+- `RESEND_FROM_NAME`
+- `RESEND_REPLY_TO`
 - `SMTP_HOST`
 - `SMTP_PORT`
 - `SMTP_SECURE`
@@ -78,7 +82,7 @@ If you seed the initial admin in production, rotate that password immediately af
 
 ## What the new controls add
 
-- Invite links can be emailed directly when SMTP is configured.
+- Invite links can be emailed directly when Resend or SMTP is configured.
 - Password reset emails can be sent directly to the affected user.
 - Admin audit logs record invite, create, reset, activate, deactivate, and password-change events.
 - The app manual now contains a plain-language backup and restore runbook.

@@ -43,6 +43,10 @@ Required backend variables:
 DATABASE_URL=postgresql://...
 JWT_SECRET=long-secret-at-least-24-characters
 FRONTEND_ORIGIN=http://localhost:5173
+RESEND_API_KEY=re_xxx
+RESEND_FROM_EMAIL=onboarding@resend.dev
+RESEND_FROM_NAME=DALA WMS
+RESEND_REPLY_TO=ops@dala.ng
 SMTP_HOST=smtp.your-provider.com
 SMTP_PORT=587
 SMTP_SECURE=false
@@ -143,10 +147,10 @@ npm run db:seed-demo
 
 The Users page now supports:
 - invite link generation
-- invite email delivery when SMTP is configured
+- invite email delivery when Resend or SMTP is configured
 - direct user creation
 - temporary password resets
-- password reset email delivery when SMTP is configured
+- password reset email delivery when Resend or SMTP is configured
 - activation and deactivation
 - admin audit review through the Admin Audit page
 
