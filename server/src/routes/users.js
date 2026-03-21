@@ -42,11 +42,15 @@ async function deliverEmail(action, targetEmail, job) {
   try {
     return await job()
   } catch (error) {
+    const normalized = typeof error === 'object' && error !== null
+      ? error
+      : { error: String(error) }
+
     return {
       status: 'failed',
-      error: error.message,
-      code: error.code || null,
-      command: error.command || null,
+      error: normalized.message || normalized.error || 'Email delivery failed.',
+      code: normalized.code || null,
+      command: normalized.command || null,
       action,
       targetEmail,
     }
