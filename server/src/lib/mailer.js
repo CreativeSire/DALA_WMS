@@ -1,17 +1,12 @@
 import nodemailer from 'nodemailer'
 import { env } from '../config/env.js'
 
-let transport
-
 function hasEmailConfig() {
   return Boolean(env.SMTP_HOST && env.SMTP_PORT && env.SMTP_USER && env.SMTP_PASS && env.SMTP_FROM_EMAIL)
 }
 
-function getTransport() {
-  if (!hasEmailConfig()) return null
-  if (transport) return transport
-
-  transport = nodemailer.createTransport({
+function createTransport() {
+  return nodemailer.createTransport({
     host: env.SMTP_HOST,
     port: env.SMTP_PORT,
     secure: env.SMTP_SECURE === 'true',
@@ -19,9 +14,11 @@ function getTransport() {
       user: env.SMTP_USER,
       pass: env.SMTP_PASS,
     },
+    connectionTimeout: 15000,
+    greetingTimeout: 15000,
+    socketTimeout: 15000,
+    dnsTimeout: 15000,
   })
-
-  return transport
 }
 
 function fromAddress() {
@@ -30,11 +27,11 @@ function fromAddress() {
 }
 
 export async function sendEmail({ to, subject, html, text }) {
-  const emailTransport = getTransport()
-  if (!emailTransport) {
+  if (!hasEmailConfig()) {
     return { status: 'disabled', message: 'SMTP is not configured.' }
   }
 
+  const emailTransport = createTransport()
   const info = await emailTransport.sendMail({
     from: fromAddress(),
     to,
