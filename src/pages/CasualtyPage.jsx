@@ -193,7 +193,7 @@ export default function CasualtyPage() {
       </div>
 
       {/* Filter tabs */}
-      <div style={{ display: 'flex', gap: 6, marginBottom: 16 }}>
+      <div style={{ display: 'flex', gap: 6, marginBottom: 16, flexWrap: 'wrap' }}>
         {[['all', 'All'], ['pending', 'Pending'], ['approved', 'Approved'], ['rejected', 'Rejected']].map(([v, label]) => (
           <button key={v} onClick={() => setFilter(v)} style={{
             padding: '7px 14px', borderRadius: 5, border: '1px solid',
@@ -282,7 +282,7 @@ export default function CasualtyPage() {
               </div>
             )}
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 10 }}>
               <Select label="Reason" value={form.reason} onChange={e => setForm(f => ({ ...f, reason: e.target.value }))}>
                 <option value="damaged">Damaged</option>
                 <option value="expired">Expired</option>
@@ -299,7 +299,7 @@ export default function CasualtyPage() {
               ⚠ Stock will not be deducted until the casualty is approved by Operations or Admin.
             </div>
 
-            <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end' }}>
+            <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
               <Button type="button" variant="ghost" onClick={() => setShowLogModal(false)}>Cancel</Button>
               <Button type="submit" disabled={submitting || !form.batchId}>{submitting ? 'Saving...' : 'Log Casualty →'}</Button>
             </div>
@@ -311,7 +311,7 @@ export default function CasualtyPage() {
       {showReviewModal && selected && (
         <Modal title="Review Casualty" onClose={() => { setShowReviewModal(false); setSelected(null); setRejectionReason('') }}>
           <div style={{ background: '#0b0f10', border: '1px solid #1a2224', borderRadius: 6, padding: 18, marginBottom: 20 }}>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, fontSize: 13 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 12, fontSize: 13 }}>
               <Field label="Product" value={selected.product_name} />
               <Field label="SKU" value={selected.sku_code} mono />
               <Field label="Brand Partner" value={selected.brand_partner} />
@@ -336,7 +336,7 @@ export default function CasualtyPage() {
             placeholder="Explain why this casualty is being rejected..."
           />
 
-          <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end', marginTop: 8 }}>
+          <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end', marginTop: 8, flexWrap: 'wrap' }}>
             <Button variant="danger" onClick={handleReject} disabled={submitting}>
               {submitting ? '...' : '✕ Reject'}
             </Button>

@@ -352,7 +352,7 @@ export default function ReportsPage() {
         subtitle="Pick a report, apply a date range where needed, then export the exact dataset visible in the table."
         style={{ marginBottom: 24 }}
       >
-        <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(220px,1fr))', gap:12 }}>
+        <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(220px,1fr))', gap:12 }}>
           {REPORTS.map(r => (
             <button key={r.id} onClick={() => runReport(r.id)} style={{
               background: activeReport===r.id ? 'rgba(43,227,180,0.08)' : 'rgba(255,255,255,0.02)',

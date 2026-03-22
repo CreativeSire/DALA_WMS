@@ -279,7 +279,7 @@ export default function DispatchPage() {
                         )}
                       </div>
                     </div>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10 }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 10 }}>
                       <div style={{ gridColumn: '1 / -1' }}>
                         <Select label="Product" value={line.productId} onChange={e => updateLine(i, 'productId', e.target.value)} required>
                           <option value="">Select product...</option>
@@ -307,7 +307,7 @@ export default function DispatchPage() {
               ⚠ Dispatch will be in PENDING status until confirmed by security at gate.
             </div>
 
-            <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end' }}>
+            <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
               <Button type="button" variant="ghost" onClick={() => { setShowModal(false); resetForm() }}>Cancel</Button>
               <Button type="submit" disabled={loading}>{loading ? 'Processing...' : 'Create Dispatch →'}</Button>
             </div>
@@ -328,7 +328,7 @@ export default function DispatchPage() {
           <div style={{ background: 'rgba(0,229,160,0.06)', border: '1px solid rgba(0,229,160,0.15)', borderRadius: 6, padding: 14, marginBottom: 20, fontSize: 13, color: '#a0c8b0' }}>
             By confirming, you are verifying that the physical load has been checked and the truck has departed the warehouse.
           </div>
-          <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end' }}>
+          <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
             <Button variant="ghost" onClick={() => { setShowConfirmModal(false); setSelectedDispatch(null) }}>Cancel</Button>
             <Button onClick={() => handleConfirm(selectedDispatch)} disabled={loading}>
               {loading ? 'Confirming...' : '✓ Confirm Load Departed'}

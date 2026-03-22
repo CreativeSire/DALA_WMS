@@ -202,7 +202,7 @@ export default function GRNPage() {
                         style={{ background: 'none', border: 'none', color: '#ff6b35', cursor: 'pointer', fontSize: 16 }}>×</button>
                     )}
                   </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 10 }}>
                     <div style={{ gridColumn: '1 / -1' }}>
                       <Select label="Product" value={line.productId} onChange={e => updateLine(i, 'productId', e.target.value)} required>
                         <option value="">Select product...</option>
@@ -231,7 +231,7 @@ export default function GRNPage() {
 
             <TextArea label="Notes" value={notes} onChange={e => setNotes(e.target.value)} placeholder="Optional notes for receiving, damages, shortages, or documentation checks..." rows={3} />
 
-            <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end', marginTop: 8 }}>
+            <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end', marginTop: 8, flexWrap: 'wrap' }}>
               <Button type="button" variant="ghost" onClick={() => { setShowModal(false); resetForm() }}>Cancel</Button>
               <Button type="submit" disabled={loading}>{loading ? 'Saving...' : 'Create GRN →'}</Button>
             </div>

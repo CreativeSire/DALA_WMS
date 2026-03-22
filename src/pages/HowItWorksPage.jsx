@@ -52,7 +52,18 @@ export default function HowItWorksPage() {
               <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 18, color: '#f5efee', marginBottom: 12 }}>
                 {flow.title}
               </div>
-              <img src={flow.image} alt={flow.title} style={imageStyle} />
+              <div style={flowGridStyle}>
+                {flow.steps.map((step, index) => (
+                  <div key={step.label} style={flowStepCardStyle}>
+                    <div style={{ fontFamily: 'DM Mono, monospace', fontSize: 10, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#d48779', marginBottom: 8 }}>
+                      {index + 1}. {step.label}
+                    </div>
+                    <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 18, color: '#f5efee', marginBottom: 8 }}>
+                      {step.detail}
+                    </div>
+                  </div>
+                ))}
+              </div>
               <div style={{ fontSize: 14, color: '#b9c0c2', lineHeight: 1.7 }}>
                 {flow.note}
               </div>
@@ -166,16 +177,23 @@ const visualCardStyle = {
   background: 'rgba(10, 10, 11, 0.34)',
 }
 
-const imageStyle = {
-  width: '100%',
-  borderRadius: 12,
-  border: '1px solid rgba(171, 118, 108, 0.16)',
-  marginBottom: 12,
-  background: '#0a0b0d',
-}
-
 const guideTextStyle = {
   fontSize: 14,
   color: '#b9c0c2',
   lineHeight: 1.7,
+}
+
+const flowGridStyle = {
+  display: 'grid',
+  gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+  gap: 12,
+  marginBottom: 12,
+}
+
+const flowStepCardStyle = {
+  borderRadius: 16,
+  padding: 16,
+  border: '1px solid rgba(171, 118, 108, 0.16)',
+  background: 'rgba(18, 24, 26, 0.72)',
+  minHeight: 120,
 }

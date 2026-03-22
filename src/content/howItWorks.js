@@ -47,18 +47,33 @@ export const coreRules = [
 export const workflowVisuals = [
   {
     title: 'Inbound flow',
-    image: '/workflow-inbound.svg',
     note: 'Goods come in, they are checked, they are entered in Stock Intake, and then they become part of live stock.',
+    steps: [
+      { label: 'Truck arrives', detail: 'Check delivery count, batch details, and expiry information.' },
+      { label: 'GRN entered', detail: 'Save the delivery under the right partner and products.' },
+      { label: 'Batch created', detail: 'The system creates live stock records for the goods received.' },
+      { label: 'Risks watched', detail: 'Expiry and reorder alerts begin to work automatically.' },
+    ],
   },
   {
     title: 'Outbound flow',
-    image: '/workflow-outbound.svg',
     note: 'Goods are selected for dispatch, batch allocation is recorded, the dispatch is confirmed, and the movement stays visible in the ledger.',
+    steps: [
+      { label: 'Order ready', detail: 'Create the dispatch note for the retailer and items going out.' },
+      { label: 'FIFO applied', detail: 'Older available stock is used first where possible.' },
+      { label: 'Gate check', detail: 'Security or operations confirms the load actually leaves.' },
+      { label: 'Full trace', detail: 'The ledger keeps the history of who moved what and when.' },
+    ],
   },
   {
     title: 'Count and correction flow',
-    image: '/workflow-count.svg',
     note: 'The team counts what is physically present, compares it with system stock, records any difference, and approves the final correction.',
+    steps: [
+      { label: 'Session opened', detail: 'The system snapshots current stock for counting.' },
+      { label: 'Floor counted', detail: 'The team enters what is physically in the warehouse.' },
+      { label: 'Variance reviewed', detail: 'Differences are explained instead of ignored.' },
+      { label: 'Adjustment applied', detail: 'Approved corrections update the stock record properly.' },
+    ],
   },
 ]
 
