@@ -1,21 +1,24 @@
-import { useState, useEffect, createContext, useContext } from 'react'
+import { useState, useEffect, createContext, useContext, lazy, Suspense } from 'react'
 import { createClient } from '@supabase/supabase-js'
-import LoginPage from './pages/LoginPage'
-import CompleteInvitePage from './pages/CompleteInvitePage'
-import Dashboard from './pages/Dashboard'
-import GRNPage from './pages/GRNPage'
-import DispatchPage from './pages/DispatchPage'
-import LedgerPage from './pages/LedgerPage'
-import ExpiryPage from './pages/ExpiryPage'
-import CasualtyPage from './pages/CasualtyPage'
-import ReorderPage from './pages/ReorderPage'
-import PartnerPerformancePage from './pages/PartnerPerformancePage'
-import PhysicalCountPage from './pages/PhysicalCountPage'
-import ReportsPage from './pages/ReportsPage'
-import HowItWorksPage from './pages/HowItWorksPage'
-import AdminAuditPage from './pages/AdminAuditPage'
-import { ProductsPage, BrandPartnersPage, UsersPage } from './pages/ProductsPage'
+const LoginPage = lazy(() => import('./pages/LoginPage'))
+const CompleteInvitePage = lazy(() => import('./pages/CompleteInvitePage'))
+const Dashboard = lazy(() => import('./pages/Dashboard'))
+const GRNPage = lazy(() => import('./pages/GRNPage'))
+const DispatchPage = lazy(() => import('./pages/DispatchPage'))
+const LedgerPage = lazy(() => import('./pages/LedgerPage'))
+const ExpiryPage = lazy(() => import('./pages/ExpiryPage'))
+const CasualtyPage = lazy(() => import('./pages/CasualtyPage'))
+const ReorderPage = lazy(() => import('./pages/ReorderPage'))
+const PartnerPerformancePage = lazy(() => import('./pages/PartnerPerformancePage'))
+const PhysicalCountPage = lazy(() => import('./pages/PhysicalCountPage'))
+const ReportsPage = lazy(() => import('./pages/ReportsPage'))
+const HowItWorksPage = lazy(() => import('./pages/HowItWorksPage'))
+const AdminAuditPage = lazy(() => import('./pages/AdminAuditPage'))
+const ProductsPage = lazy(() => import('./pages/ProductsPage').then((module) => ({ default: module.ProductsPage })))
+const BrandPartnersPage = lazy(() => import('./pages/ProductsPage').then((module) => ({ default: module.BrandPartnersPage })))
+const UsersPage = lazy(() => import('./pages/ProductsPage').then((module) => ({ default: module.UsersPage })))
 import Layout from './components/Layout'
+import AppErrorBoundary from './components/AppErrorBoundary'
 import { createApiClient } from './lib/apiClient'
 
 const runtimeConfig = globalThis.__APP_CONFIG__ || {}
@@ -39,7 +42,13 @@ export default function App() {
   const [page, setPage] = useState('dashboard')
 
   if (previewMode === 'manual') {
-    return <HowItWorksPage />
+    return (
+      <AppErrorBoundary>
+        <Suspense fallback={<LoadingScreen />}>
+          <HowItWorksPage />
+        </Suspense>
+      </AppErrorBoundary>
+    )
   }
 
   if (!hasSupabaseConfig && !hasBackendApi) {
@@ -112,7 +121,11 @@ export default function App() {
 
   if (!session) return (
     <AuthContext.Provider value={{ session, profile, supabase, api, authMode: hasBackendApi ? 'api' : 'supabase', refreshAuth, logout }}>
-      {inviteMode && hasBackendApi ? <CompleteInvitePage /> : <LoginPage />}
+      <AppErrorBoundary>
+        <Suspense fallback={<LoadingScreen />}>
+          {inviteMode && hasBackendApi ? <CompleteInvitePage /> : <LoginPage />}
+        </Suspense>
+      </AppErrorBoundary>
     </AuthContext.Provider>
   )
 
@@ -146,7 +159,11 @@ export default function App() {
 
   return (
     <AuthContext.Provider value={{ session, profile, supabase, api, authMode: hasBackendApi ? 'api' : 'supabase', refreshAuth, logout }}>
-      <Layout page={page} setPage={setPage}>{renderPage()}</Layout>
+      <AppErrorBoundary>
+        <Suspense fallback={<PageLoadingState />}>
+          <Layout page={page} setPage={setPage}>{renderPage()}</Layout>
+        </Suspense>
+      </AppErrorBoundary>
     </AuthContext.Provider>
   )
 }
@@ -221,6 +238,17 @@ function LoadingScreen() {
       eyebrow="Loading"
       title="Starting the workspace"
       copy="The frontend is checking your backend connection and restoring the active session."
+      accent="#d48779"
+    />
+  )
+}
+
+function PageLoadingState() {
+  return (
+    <ScreenFrame
+      eyebrow="Loading"
+      title="Opening page"
+      copy="The next workspace module is loading now."
       accent="#d48779"
     />
   )
