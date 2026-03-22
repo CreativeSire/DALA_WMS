@@ -8,6 +8,7 @@ export async function listProducts() {
       p.sku_code,
       p.name,
       p.category,
+      p.sku_class,
       p.unit_type,
       p.allows_fractions,
       p.reorder_threshold,
@@ -31,13 +32,14 @@ export async function createProduct(input) {
         sku_code,
         name,
         category,
+        sku_class,
         unit_type,
         allows_fractions,
         reorder_threshold,
         expiry_alert_days,
         is_active
       )
-      VALUES ($1, UPPER($2), $3, NULLIF($4, ''), $5, $6, $7, $8, COALESCE($9, true))
+      VALUES ($1, UPPER($2), $3, NULLIF($4, ''), $5, $6, $7, $8, $9, COALESCE($10, true))
       RETURNING *
     `,
     [
@@ -45,6 +47,7 @@ export async function createProduct(input) {
       input.sku_code,
       input.name,
       input.category,
+      input.sku_class,
       input.unit_type,
       input.allows_fractions,
       input.reorder_threshold,
@@ -63,11 +66,12 @@ export async function updateProduct(id, input) {
           sku_code = UPPER($3),
           name = $4,
           category = NULLIF($5, ''),
-          unit_type = $6,
-          allows_fractions = $7,
-          reorder_threshold = $8,
-          expiry_alert_days = $9,
-          is_active = COALESCE($10, is_active),
+          sku_class = $6,
+          unit_type = $7,
+          allows_fractions = $8,
+          reorder_threshold = $9,
+          expiry_alert_days = $10,
+          is_active = COALESCE($11, is_active),
           updated_at = NOW()
       WHERE id = $1
       RETURNING *
@@ -78,11 +82,58 @@ export async function updateProduct(id, input) {
       input.sku_code,
       input.name,
       input.category,
+      input.sku_class,
       input.unit_type,
       input.allows_fractions,
       input.reorder_threshold,
       input.expiry_alert_days,
       input.is_active,
+    ],
+  )
+  return rows[0] || null
+}
+
+export async function listSkuClassSettings() {
+  const { rows } = await query(
+    `
+      SELECT *
+      FROM ai_sku_class_settings
+      ORDER BY sku_class ASC
+    `,
+  )
+  return rows.map((row) => ({
+    ...row,
+    average_multiplier_high: Number(row.average_multiplier_high),
+    average_multiplier_medium: Number(row.average_multiplier_medium),
+    average_multiplier_low: Number(row.average_multiplier_low),
+    highest_multiplier_high: Number(row.highest_multiplier_high),
+    highest_multiplier_medium: Number(row.highest_multiplier_medium),
+    minimum_history_count: Number(row.minimum_history_count),
+  }))
+}
+
+export async function updateSkuClassSetting(skuClass, input) {
+  const { rows } = await query(
+    `
+      UPDATE ai_sku_class_settings
+      SET average_multiplier_high = $2,
+          average_multiplier_medium = $3,
+          average_multiplier_low = $4,
+          highest_multiplier_high = $5,
+          highest_multiplier_medium = $6,
+          minimum_history_count = $7,
+          updated_at = NOW()
+      WHERE sku_class = $1
+      RETURNING *
+    `,
+    [
+      skuClass,
+      input.average_multiplier_high,
+      input.average_multiplier_medium,
+      input.average_multiplier_low,
+      input.highest_multiplier_high,
+      input.highest_multiplier_medium,
+      input.minimum_history_count,
     ],
   )
   return rows[0] || null

@@ -7,13 +7,14 @@ export function ProductsPage() {
   const { supabase, api, authMode } = useAuth()
   const [products, setProducts] = useState([])
   const [partners, setPartners] = useState([])
+  const [skuClasses, setSkuClasses] = useState([])
   const [showModal, setShowModal] = useState(false)
   const [editing, setEditing] = useState(null)
   const [alert, setAlert] = useState({ message: '', type: 'success' })
 
   const [form, setForm] = useState(emptyForm())
   function emptyForm() {
-    return { brand_partner_id: '', sku_code: '', name: '', category: '', unit_type: 'carton', allows_fractions: true, reorder_threshold: '', expiry_alert_days: '30' }
+    return { brand_partner_id: '', sku_code: '', name: '', category: '', sku_class: 'regular', unit_type: 'carton', allows_fractions: true, reorder_threshold: '', expiry_alert_days: '30' }
   }
 
   useEffect(() => { loadData() }, [])
@@ -25,6 +26,8 @@ export function ProductsPage() {
       ])
       setProducts((productRows || []).map((item) => ({ ...item, brand_partners: { name: item.brand_partner_name } })))
       setPartners(partnerRows || [])
+      const { classes } = await api.get('/api/products/ai-classes')
+      setSkuClasses(classes || [])
       return
     }
 
@@ -61,8 +64,24 @@ export function ProductsPage() {
 
   function openEdit(p) {
     setEditing(p)
-    setForm({ brand_partner_id: p.brand_partner_id, sku_code: p.sku_code, name: p.name, category: p.category || '', unit_type: p.unit_type, allows_fractions: p.allows_fractions, reorder_threshold: p.reorder_threshold || '', expiry_alert_days: p.expiry_alert_days || 30 })
+    setForm({ brand_partner_id: p.brand_partner_id, sku_code: p.sku_code, name: p.name, category: p.category || '', sku_class: p.sku_class || 'regular', unit_type: p.unit_type, allows_fractions: p.allows_fractions, reorder_threshold: p.reorder_threshold || '', expiry_alert_days: p.expiry_alert_days || 30 })
     setShowModal(true)
+  }
+
+  async function updateSkuClassSetting(skuClass, field, value) {
+    const current = skuClasses.find((item) => item.sku_class === skuClass)
+    if (!current || authMode !== 'api') return
+    const payload = { ...current, [field]: field === 'minimum_history_count' ? Number(value) : Number(value) }
+    delete payload.created_at
+    delete payload.updated_at
+    delete payload.sku_class
+    try {
+      const { setting } = await api.patch(`/api/products/ai-classes/${skuClass}`, payload)
+      setSkuClasses((prev) => prev.map((item) => item.sku_class === skuClass ? setting : item))
+      showAlert(`Updated ${skuClass.replace('_', ' ')} anomaly thresholds.`, 'success')
+    } catch (error) {
+      showAlert(error.message, 'error')
+    }
   }
 
   function showAlert(message, type) { setAlert({ message, type }); setTimeout(() => setAlert({ message: '', type: 'success' }), 4000) }
@@ -71,13 +90,42 @@ export function ProductsPage() {
     <div>
       <PageHeader title="Products (SKUs)" subtitle="Manage your product catalogue" action={<Button onClick={() => { setEditing(null); setForm(emptyForm()); setShowModal(true) }}>+ Add Product</Button>} />
       <Alert message={alert.message} type={alert.type} />
+
+      {authMode === 'api' && skuClasses.length > 0 && (
+        <SectionCard
+          eyebrow="AI Dispatch Guardrails"
+          title="Anomaly thresholds by SKU class"
+          subtitle="Fast movers, regular lines, controlled items, and seasonal stock can each use a different warning level."
+          style={{ marginBottom: 20 }}
+        >
+          <div style={{ display: 'grid', gap: 12 }}>
+            {skuClasses.map((item) => (
+              <div key={item.sku_class} style={{ borderRadius: 16, border: '1px solid rgba(212,135,121,0.12)', background: 'rgba(255,255,255,0.02)', padding: 14 }}>
+                <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 16, color: '#f4efee', marginBottom: 10 }}>
+                  {item.sku_class.replace('_', ' ')}
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: 10 }}>
+                  <Input label="Low avg x" type="number" step="0.05" value={item.average_multiplier_low} onChange={e => updateSkuClassSetting(item.sku_class, 'average_multiplier_low', e.target.value)} />
+                  <Input label="Medium avg x" type="number" step="0.05" value={item.average_multiplier_medium} onChange={e => updateSkuClassSetting(item.sku_class, 'average_multiplier_medium', e.target.value)} />
+                  <Input label="High avg x" type="number" step="0.05" value={item.average_multiplier_high} onChange={e => updateSkuClassSetting(item.sku_class, 'average_multiplier_high', e.target.value)} />
+                  <Input label="Medium peak x" type="number" step="0.05" value={item.highest_multiplier_medium} onChange={e => updateSkuClassSetting(item.sku_class, 'highest_multiplier_medium', e.target.value)} />
+                  <Input label="High peak x" type="number" step="0.05" value={item.highest_multiplier_high} onChange={e => updateSkuClassSetting(item.sku_class, 'highest_multiplier_high', e.target.value)} />
+                  <Input label="Min history" type="number" step="1" value={item.minimum_history_count} onChange={e => updateSkuClassSetting(item.sku_class, 'minimum_history_count', e.target.value)} />
+                </div>
+              </div>
+            ))}
+          </div>
+        </SectionCard>
+      )}
+
       <Card style={{ padding: 0, overflow: 'hidden' }}>
         <Table
-          headers={['SKU', 'Product Name', 'Brand Partner', 'Category', 'Unit', 'Reorder At', 'Expiry Alert']}
+          headers={['SKU', 'Product Name', 'Brand Partner', 'Class', 'Category', 'Unit', 'Reorder At', 'Expiry Alert']}
           rows={products.map(p => [
             <span style={{ fontFamily: 'DM Mono, monospace', fontSize: 12, color: '#4a6068' }}>{p.sku_code}</span>,
             <button onClick={() => openEdit(p)} style={{ background: 'none', border: 'none', color: '#00e5a0', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif', fontWeight: 500, fontSize: 13 }}>{p.name}</button>,
             p.brand_partners?.name,
+            <Badge color="#d48779">{(p.sku_class || 'regular').replace('_', ' ')}</Badge>,
             p.category || '—',
             p.unit_type,
             p.reorder_threshold > 0 ? <Badge color="#ffb547">{p.reorder_threshold}</Badge> : '—',
@@ -98,6 +146,12 @@ export function ProductsPage() {
               <Input label="SKU Code" value={form.sku_code} onChange={e => setForm(f => ({ ...f, sku_code: e.target.value }))} required placeholder="e.g. MILO-400G" />
               <Input label="Product Name" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} required placeholder="e.g. Milo 400g" />
               <Input label="Category" value={form.category} onChange={e => setForm(f => ({ ...f, category: e.target.value }))} placeholder="e.g. Beverages" />
+              <Select label="SKU Class" value={form.sku_class} onChange={e => setForm(f => ({ ...f, sku_class: e.target.value }))}>
+                <option value="fast_mover">Fast mover</option>
+                <option value="regular">Regular</option>
+                <option value="controlled">Controlled</option>
+                <option value="seasonal">Seasonal</option>
+              </Select>
               <Select label="Unit Type" value={form.unit_type} onChange={e => setForm(f => ({ ...f, unit_type: e.target.value }))}>
                 <option value="carton">Carton</option>
                 <option value="piece">Piece</option>

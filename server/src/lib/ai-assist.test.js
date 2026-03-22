@@ -13,6 +13,30 @@ describe('ai assist helpers', () => {
     expect(warnings[0].productName).toBe('Cola')
   })
 
+  it('uses SKU class thresholds when scoring dispatch anomalies', () => {
+    const warnings = scoreDispatchAnomalies(
+      [{ productId: 'p1', quantity: 18, unitFraction: 1 }],
+      [{
+        product_id: 'p1',
+        product_name: 'Controlled Item',
+        sku_code: 'CTRL-1',
+        sku_class: 'controlled',
+        dispatch_count: 2,
+        avg_qty: 10,
+        max_qty: 16,
+        average_multiplier_high: 1.8,
+        average_multiplier_medium: 1.35,
+        average_multiplier_low: 1.15,
+        highest_multiplier_high: 1.1,
+        highest_multiplier_medium: 1.05,
+        minimum_history_count: 2,
+      }],
+    )
+
+    expect(warnings).toHaveLength(1)
+    expect(warnings[0].skuClass).toBe('controlled')
+  })
+
   it('ranks move-first batches by expiry and age', () => {
     const ranked = rankMoveFirstBatches([
       { batch_id: 'b1', batch_number: 'A-001', quantity_remaining: 12, product_id: 'p1', product_name: 'Milk', sku_code: 'MLK', brand_partner: 'DALA', days_in_stock: 10, days_until_expiry: 1 },

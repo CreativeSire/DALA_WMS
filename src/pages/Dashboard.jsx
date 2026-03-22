@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '../App'
-import { Badge, Button, Card, EmptyState, PageHeader, SectionCard, StatStrip } from '../components/ui'
+import { Badge, Button, Card, EmptyState, Input, PageHeader, SectionCard, StatStrip } from '../components/ui'
 import { useIsCompact } from '../lib/useIsCompact'
 
 export default function Dashboard({ setPage }) {
@@ -19,6 +19,9 @@ export default function Dashboard({ setPage }) {
     moveFirstBatches: [],
   })
   const [opsSummary, setOpsSummary] = useState(null)
+  const [summaryState, setSummaryState] = useState({ preferences: null, deliveries: [] })
+  const [savingSummaryPrefs, setSavingSummaryPrefs] = useState(false)
+  const [sendingSummary, setSendingSummary] = useState(false)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => { load() }, [])
@@ -26,12 +29,14 @@ export default function Dashboard({ setPage }) {
   async function load() {
     setLoading(true)
     if (authMode === 'api') {
-      const [dashboard, summary] = await Promise.all([
+      const [dashboard, summary, deliveryState] = await Promise.all([
         api.get('/api/inventory/dashboard'),
         api.get('/api/inventory/ops-summary'),
+        api.get('/api/inventory/ops-summary/preferences'),
       ])
       setData(dashboard)
       setOpsSummary(summary)
+      setSummaryState(deliveryState)
       setLoading(false)
       return
     }
@@ -66,6 +71,30 @@ export default function Dashboard({ setPage }) {
     setLoading(false)
   }
 
+  async function updateSummaryPrefs(patch) {
+    if (authMode !== 'api') return
+    setSavingSummaryPrefs(true)
+    try {
+      const { preferences } = await api.patch('/api/inventory/ops-summary/preferences', patch)
+      setSummaryState((prev) => ({ ...prev, preferences }))
+    } finally {
+      setSavingSummaryPrefs(false)
+    }
+  }
+
+  async function sendSummaryNow() {
+    if (authMode !== 'api') return
+    setSendingSummary(true)
+    try {
+      const result = await api.post('/api/inventory/ops-summary/send-now', {})
+      setOpsSummary(result.summary)
+      const refreshed = await api.get('/api/inventory/ops-summary/preferences')
+      setSummaryState(refreshed)
+    } finally {
+      setSendingSummary(false)
+    }
+  }
+
   const totalAlerts = data.lowStock + data.outOfStock + data.nearExpiry + data.expired + data.pendingCasualties
   const tasks = [
     { label: 'Out of stock', value: data.outOfStock, page: 'reorder', color: '#bc6658' },
@@ -73,6 +102,13 @@ export default function Dashboard({ setPage }) {
     { label: 'Near expiry', value: data.nearExpiry, page: 'expiry', color: '#d48779' },
     { label: 'Expired', value: data.expired, page: 'expiry', color: '#bc6658' },
     { label: 'Pending write-offs', value: data.pendingCasualties, page: 'casualties', color: '#b285a9' },
+    ...((opsSummary?.taskWarnings || []).map((warning) => ({
+      label: warning.title,
+      value: 'AI',
+      page: warning.page,
+      color: '#6dc6ff',
+      detail: warning.detail,
+    }))),
   ]
   const activeTasks = tasks.filter((task) => task.value > 0)
 
@@ -130,6 +166,70 @@ export default function Dashboard({ setPage }) {
           )}
         </SectionCard>
       </div>
+
+      {authMode === 'api' && summaryState.preferences && (
+        <SectionCard
+          eyebrow="Delivery"
+          title="Daily manager brief"
+          subtitle="Choose whether the daily ops summary lands inside the app, by email, or both."
+          style={{ marginBottom: 18 }}
+        >
+          <div style={{ display: 'grid', gridTemplateColumns: isCompact ? '1fr' : '1fr 1fr', gap: 16 }}>
+            <div style={{ display: 'grid', gap: 12 }}>
+              <ToggleCard
+                title="In-app summary"
+                copy="Save the daily brief inside your dashboard."
+                active={summaryState.preferences.in_app_enabled}
+                onToggle={() => updateSummaryPrefs({ in_app_enabled: !summaryState.preferences.in_app_enabled })}
+                disabled={savingSummaryPrefs}
+              />
+              <ToggleCard
+                title="Email summary"
+                copy="Send the same brief to your email address."
+                active={summaryState.preferences.email_enabled}
+                onToggle={() => updateSummaryPrefs({ email_enabled: !summaryState.preferences.email_enabled })}
+                disabled={savingSummaryPrefs}
+              />
+              <div style={{ display: 'grid', gap: 8 }}>
+                <div style={{ fontSize: 12, color: '#bbaead' }}>Delivery hour</div>
+                <Input
+                  value={summaryState.preferences.delivery_hour}
+                  onChange={(event) => updateSummaryPrefs({ delivery_hour: Number(event.target.value || 0) })}
+                  type="number"
+                  min="0"
+                  max="23"
+                />
+              </div>
+              <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                <Button size="sm" onClick={sendSummaryNow} disabled={sendingSummary}>
+                  {sendingSummary ? 'Sending…' : 'Send today’s brief now'}
+                </Button>
+              </div>
+            </div>
+
+            <div style={{ display: 'grid', gap: 10 }}>
+              {(summaryState.deliveries || []).length === 0 ? (
+                <EmptyState title="No summary delivered yet" copy="Once the daily brief runs, recent in-app and email deliveries will appear here." />
+              ) : summaryState.deliveries.slice(0, 5).map((delivery) => (
+                <div key={delivery.id} style={deliveryRowStyle}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}>
+                    <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 15, color: '#f4efee' }}>
+                      {delivery.channel === 'email' ? 'Email brief' : 'In-app brief'}
+                    </div>
+                    <Badge color={delivery.delivery_status === 'sent' ? '#2be3b4' : '#d48779'}>{delivery.delivery_status}</Badge>
+                  </div>
+                  <div style={{ marginTop: 6, fontSize: 12, color: '#c2b7b5' }}>
+                    {delivery.summary_date}
+                  </div>
+                  <div style={{ marginTop: 8, fontSize: 13, color: '#b8acab', lineHeight: 1.6 }}>
+                    {delivery.summary?.headline || 'Daily ops summary delivered.'}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </SectionCard>
+      )}
 
       {opsSummary && (
         <SectionCard
@@ -274,14 +374,34 @@ function TaskRow({ task, onOpen }) {
         textAlign: 'left',
       }}
     >
-      <div>
-        <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 16, color: '#f4efee' }}>{task.label}</div>
-        <div style={{ fontSize: 12, color: '#c2b7b5' }}>Open the related module now</div>
-      </div>
+        <div>
+          <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 16, color: '#f4efee' }}>{task.label}</div>
+          <div style={{ fontSize: 12, color: '#c2b7b5' }}>{task.detail || 'Open the related module now'}</div>
+        </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
         <Badge color={task.color}>{task.value}</Badge>
         <span style={{ fontFamily: 'DM Mono, monospace', fontSize: 10, color: task.color }}>OPEN</span>
       </div>
+    </button>
+  )
+}
+
+function ToggleCard({ title, copy, active, onToggle, disabled }) {
+  return (
+    <button type="button" onClick={onToggle} disabled={disabled} style={{
+      borderRadius: 16,
+      padding: 14,
+      border: `1px solid ${active ? 'rgba(43,227,180,0.22)' : 'rgba(212,135,121,0.12)'}`,
+      background: active ? 'rgba(43,227,180,0.08)' : 'rgba(255,255,255,0.02)',
+      textAlign: 'left',
+      cursor: 'pointer',
+      opacity: disabled ? 0.7 : 1,
+    }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'center' }}>
+        <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 16, color: '#f4efee' }}>{title}</div>
+        <Badge color={active ? '#2be3b4' : '#8d7f7d'}>{active ? 'On' : 'Off'}</Badge>
+      </div>
+      <div style={{ marginTop: 8, fontSize: 13, color: '#b8acab', lineHeight: 1.6 }}>{copy}</div>
     </button>
   )
 }
@@ -322,6 +442,13 @@ const priorityCardStyle = {
   background: 'rgba(212, 135, 121, 0.08)',
   textAlign: 'left',
   cursor: 'pointer',
+}
+
+const deliveryRowStyle = {
+  borderRadius: 16,
+  padding: 14,
+  border: '1px solid rgba(212, 135, 121, 0.12)',
+  background: 'rgba(255,255,255,0.02)',
 }
 
 function movementColor(type) {

@@ -19,7 +19,7 @@ export const victorJourney = {
     },
     {
       title: '2. Victor checks what is available',
-      detail: 'Victor uses the Dashboard, Ledger, and Reorder pages to see current stock, low stock items, and unusual movement before operations continue.',
+      detail: 'Victor uses the Dashboard, Ledger, and Reorder pages to see current stock, low stock items, move-first batches, and unusual movement before operations continue.',
     },
     {
       title: '3. Victor prepares goods for dispatch',
@@ -32,6 +32,10 @@ export const victorJourney = {
     {
       title: '5. Victor confirms what is physically on the floor',
       detail: 'Victor opens Physical Count, records what is actually in the warehouse, submits the count, and approves the result so the system reflects reality instead of assumptions.',
+    },
+    {
+      title: '6. Victor starts the day with the ops brief',
+      detail: 'Victor can keep the daily summary inside the app, by email, or both. The brief highlights stock risks, unusual dispatch warnings, and what needs approval that day.',
     },
   ],
 }
@@ -217,7 +221,7 @@ export const maintenanceNote = 'Keep this page practical. When the system change
 export const aiAssistGuide = [
   {
     title: 'Anomaly detection',
-    detail: 'The system now warns when a dispatch is unusually large for a product compared with its normal pattern. This helps the team catch mistakes before stock leaves the warehouse.',
+    detail: 'The system now warns when a dispatch is unusually large for a product compared with its normal pattern. The warning level can be tuned by SKU class so fast movers and controlled items do not use the same threshold.',
   },
   {
     title: 'Smart alerts',
@@ -229,10 +233,10 @@ export const aiAssistGuide = [
   },
   {
     title: 'Ops summaries',
-    detail: 'Managers now get a short daily summary of stock risks, pending approvals, delayed actions, and unusual movement without digging through every page.',
+    detail: 'Managers now get a short daily summary of stock risks, pending approvals, delayed actions, and unusual movement. The brief can stay inside the dashboard and can also be delivered by email.',
   },
   {
     title: 'Document capture',
-    detail: 'The next step is document capture: read delivery notes or invoices and suggest GRN lines before the receiver confirms them. Staff should still review and approve before stock is posted.',
+    detail: 'Stock Intake can now read pasted delivery note text or a small uploaded document image and suggest the partner and GRN lines before the receiver confirms them. Staff still review and approve before stock is posted.',
   },
 ]

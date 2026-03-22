@@ -216,15 +216,23 @@ export async function getDispatchProductStats(productIds, { days = 120 } = {}) {
         di.product_id,
         p.name AS product_name,
         p.sku_code,
+        p.sku_class,
         COUNT(*)::int AS dispatch_count,
         COALESCE(AVG(di.quantity_dispatched), 0) AS avg_qty,
-        COALESCE(MAX(di.quantity_dispatched), 0) AS max_qty
+        COALESCE(MAX(di.quantity_dispatched), 0) AS max_qty,
+        cls.average_multiplier_high,
+        cls.average_multiplier_medium,
+        cls.average_multiplier_low,
+        cls.highest_multiplier_high,
+        cls.highest_multiplier_medium,
+        cls.minimum_history_count
       FROM dispatch_items di
       JOIN dispatch_notes dn ON dn.id = di.dispatch_id
       JOIN products p ON p.id = di.product_id
+      JOIN ai_sku_class_settings cls ON cls.sku_class = p.sku_class
       WHERE di.product_id = ANY($1::uuid[])
         AND dn.created_at >= NOW() - make_interval(days => $2)
-      GROUP BY di.product_id, p.name, p.sku_code
+      GROUP BY di.product_id, p.name, p.sku_code, p.sku_class, cls.average_multiplier_high, cls.average_multiplier_medium, cls.average_multiplier_low, cls.highest_multiplier_high, cls.highest_multiplier_medium, cls.minimum_history_count
     `,
     [productIds, days],
   )
@@ -328,6 +336,122 @@ export async function getOpsSummary() {
     pendingDispatches,
     submittedCountSessions,
   })
+}
+
+export async function getOpsSummaryPreferences(userId) {
+  const { rows } = await query(
+    `
+      INSERT INTO ops_summary_preferences (user_id)
+      VALUES ($1)
+      ON CONFLICT (user_id) DO UPDATE
+      SET updated_at = NOW()
+      RETURNING *
+    `,
+    [userId],
+  )
+  return rows[0]
+}
+
+export async function updateOpsSummaryPreferences(userId, input) {
+  const current = await getOpsSummaryPreferences(userId)
+  const { rows } = await query(
+    `
+      UPDATE ops_summary_preferences
+      SET in_app_enabled = COALESCE($2, in_app_enabled),
+          email_enabled = COALESCE($3, email_enabled),
+          delivery_hour = COALESCE($4, delivery_hour),
+          timezone = COALESCE(NULLIF($5, ''), timezone),
+          updated_at = NOW()
+      WHERE user_id = $1
+      RETURNING *
+    `,
+    [
+      userId,
+      input.in_app_enabled ?? current.in_app_enabled,
+      input.email_enabled ?? current.email_enabled,
+      input.delivery_hour ?? current.delivery_hour,
+      input.timezone ?? current.timezone,
+    ],
+  )
+  return rows[0]
+}
+
+export async function listOpsSummaryDeliveries(userId, { limit = 10 } = {}) {
+  const { rows } = await query(
+    `
+      SELECT *
+      FROM ops_summary_deliveries
+      WHERE user_id = $1
+      ORDER BY summary_date DESC, created_at DESC
+      LIMIT $2
+    `,
+    [userId, limit],
+  )
+  return rows
+}
+
+export async function createOpsSummaryDelivery({ userId, summaryDate, channel, summary, status = 'sent', error = null }) {
+  const { rows } = await query(
+    `
+      INSERT INTO ops_summary_deliveries (
+        user_id,
+        summary_date,
+        channel,
+        summary,
+        delivery_status,
+        delivery_error,
+        sent_at
+      )
+      VALUES ($1, $2, $3, $4, $5, $6, CASE WHEN $5 = 'sent' THEN NOW() ELSE NULL END)
+      ON CONFLICT (user_id, summary_date, channel) DO UPDATE
+      SET summary = EXCLUDED.summary,
+          delivery_status = EXCLUDED.delivery_status,
+          delivery_error = EXCLUDED.delivery_error,
+          sent_at = CASE WHEN EXCLUDED.delivery_status = 'sent' THEN NOW() ELSE ops_summary_deliveries.sent_at END
+      RETURNING *
+    `,
+    [userId, summaryDate, channel, summary, status, error],
+  )
+  return rows[0]
+}
+
+export async function markOpsSummarySent(userId, summaryDate) {
+  await query(
+    `
+      UPDATE ops_summary_preferences
+      SET last_sent_on = $2,
+          updated_at = NOW()
+      WHERE user_id = $1
+    `,
+    [userId, summaryDate],
+  )
+}
+
+export async function listDueOpsSummaryRecipients() {
+  const { rows } = await query(
+    `
+      SELECT
+        pref.*,
+        u.email,
+        u.full_name,
+        u.role,
+        u.is_active
+      FROM ops_summary_preferences pref
+      JOIN app_users u ON u.id = pref.user_id
+      WHERE u.is_active = true
+        AND (
+          pref.last_sent_on IS NULL
+          OR pref.last_sent_on < CURRENT_DATE
+        )
+        AND (
+          pref.in_app_enabled = true
+          OR pref.email_enabled = true
+        )
+        AND pref.delivery_hour <= EXTRACT(HOUR FROM NOW() AT TIME ZONE pref.timezone)
+      ORDER BY pref.delivery_hour ASC, pref.created_at ASC
+    `,
+  )
+  return rows
 }
 
 export async function getDashboardData() {

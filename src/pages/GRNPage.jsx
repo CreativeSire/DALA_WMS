@@ -11,7 +11,11 @@ export default function GRNPage() {
   const [products, setProducts] = useState([])
   const [showModal, setShowModal] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [captureLoading, setCaptureLoading] = useState(false)
   const [alert, setAlert] = useState({ message: '', type: 'success' })
+  const [documentText, setDocumentText] = useState('')
+  const [documentUpload, setDocumentUpload] = useState({ fileName: '', mimeType: '', fileData: '' })
+  const [captureResult, setCaptureResult] = useState(null)
 
   // Form state
   const [partnerId, setPartnerId] = useState('')
@@ -133,6 +137,74 @@ export default function GRNPage() {
   function resetForm() {
     setPartnerId(''); setDeliveryRef(''); setNotes('')
     setLines([newLine()])
+    setDocumentText('')
+    setDocumentUpload({ fileName: '', mimeType: '', fileData: '' })
+    setCaptureResult(null)
+  }
+
+  async function handleDocumentFile(event) {
+    const file = event.target.files?.[0]
+    if (!file) return
+
+    if (file.type.startsWith('text/') || file.name.endsWith('.csv')) {
+      const text = await file.text()
+      setDocumentText(text)
+      setDocumentUpload({ fileName: file.name, mimeType: file.type || 'text/plain', fileData: '' })
+      return
+    }
+
+    const reader = new FileReader()
+    reader.onload = () => {
+      const result = String(reader.result || '')
+      const [, base64] = result.split(',')
+      setDocumentUpload({
+        fileName: file.name,
+        mimeType: file.type || 'application/octet-stream',
+        fileData: base64 || '',
+      })
+    }
+    reader.readAsDataURL(file)
+  }
+
+  async function suggestFromDocument() {
+    if (authMode !== 'api') {
+      showAlert('Document capture is only available on the Railway backend.', 'warn')
+      return
+    }
+
+    if (!documentText.trim() && !documentUpload.fileData) {
+      showAlert('Paste the delivery note text or upload a document first.', 'error')
+      return
+    }
+
+    setCaptureLoading(true)
+    try {
+      const result = await api.post('/api/grns/document-suggestions', {
+        documentText,
+        ...documentUpload,
+      })
+      setCaptureResult(result)
+      if (result.partnerId) setPartnerId(result.partnerId)
+      if (result.lines?.length) {
+        setLines(result.lines.map((line) => ({
+          productId: line.productId,
+          batchNumber: '',
+          expiryDate: '',
+          quantity: String(line.quantity || ''),
+          unitFraction: '1',
+          unitCost: '',
+        })))
+      }
+      if (result.partnerName || result.lines?.length) {
+        showAlert('Document draft captured. Review the partner, quantities, batch numbers, and expiry before saving.', 'success')
+      } else {
+        showAlert('The document was read, but no strong SKU match was found. Review manually.', 'warn')
+      }
+    } catch (error) {
+      showAlert(`Document capture failed: ${error.message}`, 'error')
+    } finally {
+      setCaptureLoading(false)
+    }
   }
 
   function showAlert(message, type) {
@@ -210,6 +282,54 @@ export default function GRNPage() {
             </Select>
 
             <Input label="Delivery Note Reference" value={deliveryRef} onChange={e => setDeliveryRef(e.target.value)} placeholder="e.g. DN-20240301-001" />
+
+            {authMode === 'api' && (
+              <div style={{ borderTop: '1px solid #1a2224', paddingTop: 18, marginBottom: 16 }}>
+                <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 14, color: '#e0e8ea', marginBottom: 12 }}>
+                  AI document capture
+                </div>
+                <div style={{ fontSize: 13, lineHeight: 1.6, color: '#b9aeac', marginBottom: 12 }}>
+                  Paste the delivery note text or upload a small document image. The system suggests the partner and GRN lines, but you still review before saving.
+                </div>
+                <TextArea
+                  label="Document text"
+                  value={documentText}
+                  onChange={e => setDocumentText(e.target.value)}
+                  placeholder="Paste delivery note or invoice text here..."
+                  rows={4}
+                />
+                <div style={{ marginTop: 12, marginBottom: 12 }}>
+                  <label style={{ display: 'grid', gap: 6 }}>
+                    <span style={{ fontSize: 12, color: '#bbaead' }}>Upload document or image</span>
+                    <input type="file" accept=".txt,.csv,.png,.jpg,.jpeg,.webp,.pdf" onChange={handleDocumentFile} />
+                  </label>
+                  {documentUpload.fileName && (
+                    <div style={{ marginTop: 8, fontSize: 12, color: '#cdbfbc' }}>
+                      Loaded: {documentUpload.fileName}
+                    </div>
+                  )}
+                </div>
+                <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
+                  <Button type="button" variant="ghost" size="sm" onClick={suggestFromDocument} disabled={captureLoading}>
+                    {captureLoading ? 'Reading document…' : 'Suggest GRN lines'}
+                  </Button>
+                  {captureResult?.provider && (
+                    <Badge color={captureResult.provider === 'openai' ? '#6dc6ff' : '#d29b6f'}>
+                      {captureResult.provider === 'openai' ? 'AI capture' : 'Local capture'}
+                    </Badge>
+                  )}
+                </div>
+                {captureResult?.notes?.length > 0 && (
+                  <div style={{ marginTop: 12, display: 'grid', gap: 8 }}>
+                    {captureResult.notes.map((note) => (
+                      <div key={note} style={{ borderRadius: 12, padding: '10px 12px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(212, 135, 121, 0.12)', fontSize: 12, color: '#cdbfbc', lineHeight: 1.6 }}>
+                        {note}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
 
             <div style={{ borderTop: '1px solid #1a2224', paddingTop: 20, marginBottom: 16 }}>
               <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 14, color: '#e0e8ea', marginBottom: 16 }}>

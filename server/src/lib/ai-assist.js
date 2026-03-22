@@ -8,24 +8,33 @@ export function scoreDispatchAnomalies(lines, statsRows) {
   return lines.flatMap((line) => {
     const requestedQty = round(Number(line.quantity) * Number(line.unitFraction || 1))
     const stats = statsByProduct.get(line.productId)
-    if (!stats || Number(stats.dispatch_count || 0) < 3 || requestedQty <= 0) return []
+    if (!stats || requestedQty <= 0) return []
 
     const averageQty = round(stats.avg_qty)
     const highestQty = round(stats.max_qty)
     const dispatchCount = Number(stats.dispatch_count || 0)
     const ratioToAverage = averageQty > 0 ? requestedQty / averageQty : 0
     const ratioToHighest = highestQty > 0 ? requestedQty / highestQty : 0
+    const minimumHistoryCount = Number(stats.minimum_history_count || 3)
+    if (dispatchCount < minimumHistoryCount) return []
+
+    const averageHigh = Number(stats.average_multiplier_high || 3)
+    const averageMedium = Number(stats.average_multiplier_medium || 2)
+    const averageLow = Number(stats.average_multiplier_low || 1.5)
+    const highestHigh = Number(stats.highest_multiplier_high || 1.4)
+    const highestMedium = Number(stats.highest_multiplier_medium || 1.15)
 
     let severity = null
-    if ((dispatchCount >= 5 && ratioToAverage >= 3) || ratioToHighest >= 1.4) severity = 'high'
-    else if (ratioToAverage >= 2 || ratioToHighest >= 1.15) severity = 'medium'
-    else if (ratioToAverage >= 1.5) severity = 'low'
+    if (ratioToAverage >= averageHigh || ratioToHighest >= highestHigh) severity = 'high'
+    else if (ratioToAverage >= averageMedium || ratioToHighest >= highestMedium) severity = 'medium'
+    else if (ratioToAverage >= averageLow) severity = 'low'
     if (!severity) return []
 
     return [{
       productId: line.productId,
       productName: stats.product_name,
       skuCode: stats.sku_code,
+      skuClass: stats.sku_class || 'regular',
       requestedQty,
       averageQty,
       highestQty,
@@ -153,6 +162,7 @@ export function buildDailyOpsSummary({ dashboard, moveFirstBatches, unusualDispa
   if (pendingDispatches > 0) priorities.push({ title: 'Dispatches awaiting gate confirmation', detail: `${pendingDispatches} dispatches are still pending confirmation.`, page: 'dispatch' })
   if (submittedCountSessions > 0) priorities.push({ title: 'Counts awaiting approval', detail: `${submittedCountSessions} count sessions are waiting for approval.`, page: 'count' })
   if (dashboard.pendingCasualties > 0) priorities.push({ title: 'Write-offs awaiting review', detail: `${dashboard.pendingCasualties} casualties are still pending.`, page: 'casualties' })
+  if (unusualDispatches.length > 0) priorities.push({ title: 'Unusual dispatch warning', detail: `${unusualDispatches.length} dispatch lines look larger than normal history.`, page: 'dispatch' })
 
   const summaryLines = []
   if (attentionCount === 0) summaryLines.push('Stock risk is stable right now.')
@@ -172,6 +182,7 @@ export function buildDailyOpsSummary({ dashboard, moveFirstBatches, unusualDispa
       countSessions: submittedCountSessions,
       casualties: Number(dashboard.pendingCasualties || 0),
     },
+    taskWarnings: priorities.slice(0, 6),
     summaryLines,
   }
 }

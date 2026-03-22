@@ -22,6 +22,8 @@ const envSchema = z.object({
   RESEND_FROM_EMAIL: z.string().email().optional(),
   RESEND_FROM_NAME: z.string().optional(),
   RESEND_REPLY_TO: z.string().email().optional(),
+  OPENAI_API_KEY: z.string().optional(),
+  OPENAI_MODEL: z.string().default('gpt-5-mini'),
   SMTP_HOST: z.string().optional(),
   SMTP_PORT: z.coerce.number().int().positive().optional(),
   SMTP_SECURE: z.union([z.literal('true'), z.literal('false')]).optional(),
@@ -29,6 +31,8 @@ const envSchema = z.object({
   SMTP_PASS: z.string().optional(),
   SMTP_FROM_EMAIL: z.string().email().optional(),
   SMTP_FROM_NAME: z.string().optional(),
+  OPS_SUMMARY_SCHEDULER_ENABLED: z.union([z.literal('true'), z.literal('false')]).default('true'),
+  OPS_SUMMARY_SCHEDULER_INTERVAL_MINUTES: z.coerce.number().int().positive().default(15),
 })
 
 const parsed = envSchema.safeParse(process.env)

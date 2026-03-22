@@ -2,6 +2,7 @@ import { Router } from 'express'
 import { z } from 'zod'
 import { asyncHandler } from '../lib/http.js'
 import { requireAuth } from '../middleware/auth.js'
+import { requireRole } from '../middleware/auth.js'
 import {
   getCurrentStock,
   getDashboardData,
@@ -13,11 +14,19 @@ import {
   listAvailableBatches,
   refreshBatchStatuses,
 } from '../repositories/inventory-repository.js'
+import { deliverOpsSummaryToUser, getOpsSummaryDeliveryState, saveOpsSummaryPreferences } from '../services/ops-summary-service.js'
 
 const movementQuerySchema = z.object({
   limit: z.coerce.number().int().min(1).max(5000).optional(),
   from: z.string().optional(),
   to: z.string().optional(),
+})
+
+const opsSummaryPreferenceSchema = z.object({
+  in_app_enabled: z.boolean().optional(),
+  email_enabled: z.boolean().optional(),
+  delivery_hour: z.coerce.number().int().min(0).max(23).optional(),
+  timezone: z.string().optional(),
 })
 
 export const inventoryRouter = Router()
@@ -86,6 +95,32 @@ inventoryRouter.get(
   asyncHandler(async (_req, res) => {
     const summary = await getOpsSummary()
     res.json(summary)
+  }),
+)
+
+inventoryRouter.get(
+  '/ops-summary/preferences',
+  asyncHandler(async (req, res) => {
+    const state = await getOpsSummaryDeliveryState(req.user.sub)
+    res.json(state)
+  }),
+)
+
+inventoryRouter.patch(
+  '/ops-summary/preferences',
+  asyncHandler(async (req, res) => {
+    const payload = opsSummaryPreferenceSchema.parse(req.body)
+    const preferences = await saveOpsSummaryPreferences(req.user.sub, payload)
+    res.json({ preferences })
+  }),
+)
+
+inventoryRouter.post(
+  '/ops-summary/send-now',
+  requireRole('admin', 'warehouse_manager', 'operations'),
+  asyncHandler(async (req, res) => {
+    const result = await deliverOpsSummaryToUser(req.user.sub)
+    res.json(result)
   }),
 )
 
