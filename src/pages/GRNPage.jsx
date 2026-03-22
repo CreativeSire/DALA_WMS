@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '../App'
 import { Card, Button, Input, Select, Modal, Table, PageHeader, Alert, Badge, SectionCard, StatStrip, TextArea } from '../components/ui'
+import { useIsCompact } from '../lib/useIsCompact'
 
 export default function GRNPage() {
   const { supabase, api, authMode, profile } = useAuth()
+  const isCompact = useIsCompact(860)
   const [grns, setGrns] = useState([])
   const [partners, setPartners] = useState([])
   const [products, setProducts] = useState([])
@@ -163,6 +165,27 @@ export default function GRNPage() {
         ]} />
       </SectionCard>
 
+      <SectionCard
+        eyebrow="Mobile Workflow"
+        title="How to receive stock on the floor"
+        subtitle="Use this same order each time so the receiving team does not fall back to paper or spreadsheets."
+        style={{ marginBottom: 20 }}
+      >
+        <div style={{ display: 'grid', gridTemplateColumns: isCompact ? '1fr' : 'repeat(4, minmax(0, 1fr))', gap: 12 }}>
+          {[
+            ['1. Pick partner', 'Choose who supplied the goods first.'],
+            ['2. Add line items', 'Enter SKU, quantity, unit, batch, and expiry.'],
+            ['3. Review delivery note', 'Add the delivery reference and any short notes.'],
+            ['4. Save immediately', 'Once saved, live stock and reporting update.'],
+          ].map(([title, copy]) => (
+            <div key={title} style={workflowCardStyle}>
+              <div style={workflowTitleStyle}>{title}</div>
+              <div style={workflowCopyStyle}>{copy}</div>
+            </div>
+          ))}
+        </div>
+      </SectionCard>
+
       <Card style={{ padding: 0, overflow: 'hidden' }}>
         <Table
           headers={['GRN Number', 'Brand Partner', 'Items', 'Received By', 'Date', 'Ref']}
@@ -202,7 +225,7 @@ export default function GRNPage() {
                         style={{ background: 'none', border: 'none', color: '#ff6b35', cursor: 'pointer', fontSize: 16 }}>×</button>
                     )}
                   </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 10 }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: isCompact ? '1fr' : 'repeat(auto-fit, minmax(180px, 1fr))', gap: 10 }}>
                     <div style={{ gridColumn: '1 / -1' }}>
                       <Select label="Product" value={line.productId} onChange={e => updateLine(i, 'productId', e.target.value)} required>
                         <option value="">Select product...</option>
@@ -240,4 +263,25 @@ export default function GRNPage() {
       )}
     </div>
   )
+}
+
+const workflowCardStyle = {
+  borderRadius: 16,
+  padding: 16,
+  border: '1px solid rgba(212, 135, 121, 0.12)',
+  background: 'rgba(255,255,255,0.02)',
+}
+
+const workflowTitleStyle = {
+  fontFamily: 'Syne, sans-serif',
+  fontWeight: 700,
+  fontSize: 17,
+  color: '#f4efee',
+  marginBottom: 8,
+}
+
+const workflowCopyStyle = {
+  fontSize: 13,
+  lineHeight: 1.6,
+  color: '#b9aeac',
 }

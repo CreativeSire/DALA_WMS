@@ -1,5 +1,5 @@
 import { Card, Badge, PageHeader } from '../components/ui'
-import { coreRules, introGuide, maintenanceNote, pageGuides, roleGuides, victorJourney, workflowVisuals } from '../content/howItWorks'
+import { aiAssistGuide, coreRules, introGuide, maintenanceNote, pageGuides, roleGuides, victorJourney, workflowVisuals } from '../content/howItWorks'
 
 export default function HowItWorksPage() {
   return (
@@ -109,6 +109,22 @@ export default function HowItWorksPage() {
               <div style={guideTextStyle}>{page.purpose}</div>
               <GuideLabel style={{ marginTop: 12 }}>When to use it</GuideLabel>
               <div style={guideTextStyle}>{page.useWhen}</div>
+            </div>
+          ))}
+        </div>
+      </Card>
+
+      <Card style={{ marginBottom: 22 }}>
+        <SectionTitle>How AI Should Help</SectionTitle>
+        <div style={{ display: 'grid', gap: 14 }}>
+          {aiAssistGuide.map((item) => (
+            <div key={item.title} style={storyCardStyle}>
+              <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 18, color: '#f5efee', marginBottom: 8 }}>
+                {item.title}
+              </div>
+              <div style={{ fontSize: 14, color: '#b9c0c2', lineHeight: 1.7 }}>
+                {item.detail}
+              </div>
             </div>
           ))}
         </div>

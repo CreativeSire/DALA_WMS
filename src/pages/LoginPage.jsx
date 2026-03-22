@@ -1,8 +1,10 @@
 import { useState } from 'react'
 import { useAuth } from '../App'
+import { useIsCompact } from '../lib/useIsCompact'
 
 export default function LoginPage() {
   const { supabase, api, authMode, refreshAuth } = useAuth()
+  const isCompact = useIsCompact(920)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
@@ -53,32 +55,8 @@ export default function LoginPage() {
       <div style={orbStyle('58%', '9%', '#bc6658')} />
       <div style={orbStyle('auto', '34%', '#8a5d56', '62%', 'auto', '18%')} />
 
-      <div style={frameStyle} className="login-grid">
-        <section style={heroPanelStyle}>
-          <div style={eyebrowStyle}>Railway Deployment</div>
-          <div style={heroTitleStyle}>
-            Warehouse control for inbound, outbound, audit, and reconciliation.
-          </div>
-          <div style={heroCopyStyle}>
-            The live DALA WMS console is now running against the Railway backend. Sign in to review stock intake,
-            dispatch, reports, users, and partner operations in the production shell.
-          </div>
-
-          <div style={heroMetricGridStyle}>
-            <MetricCard label="Backend" value="Railway API" accent="#d48779" />
-            <MetricCard label="Database" value="Railway PG" accent="#c7a484" />
-            <MetricCard label="Mode" value="Live Review" accent="#bc6658" />
-          </div>
-
-          <div style={heroChecklistStyle}>
-            <div style={checklistTitleStyle}>What this environment already supports</div>
-            <ChecklistItem>Role-based login and persistent sessions</ChecklistItem>
-            <ChecklistItem>Inventory intake, dispatch, reports, and reconciliation flows</ChecklistItem>
-            <ChecklistItem>Embedded operator guide directly inside the app</ChecklistItem>
-          </div>
-        </section>
-
-        <section style={authPanelStyle}>
+      <div style={{ ...frameStyle, gridTemplateColumns: isCompact ? '1fr' : '1.1fr 0.9fr' }} className="login-grid">
+        <section style={{ ...authPanelStyle, order: isCompact ? 1 : 2 }}>
           <div style={wordmarkStyle}>
             DALA <span style={{ color: '#d48779' }}>WMS</span>
           </div>
@@ -153,6 +131,29 @@ export default function LoginPage() {
           <div style={footerMetaStyle}>
             <div style={footerPillStyle}>Lagos Operations</div>
             <div style={footerCopyStyle}>Use the current Railway domain for review: `dalawms.up.railway.app`</div>
+          </div>
+        </section>
+
+        <section style={{ ...heroPanelStyle, order: isCompact ? 2 : 1 }}>
+          <div style={eyebrowStyle}>Railway Deployment</div>
+          <div style={heroTitleStyle}>
+            Warehouse control that works on the floor, not only at a desk.
+          </div>
+          <div style={heroCopyStyle}>
+            Sign in to receive goods, move stock, count the warehouse, review risks, and keep a full stock record without depending on spreadsheets.
+          </div>
+
+          <div style={{ ...heroMetricGridStyle, gridTemplateColumns: isCompact ? '1fr' : 'repeat(3, minmax(0, 1fr))' }}>
+            <MetricCard label="Backend" value="Railway API" accent="#d48779" />
+            <MetricCard label="Database" value="Railway PG" accent="#c7a484" />
+            <MetricCard label="Mode" value="Mobile Ready" accent="#bc6658" />
+          </div>
+
+          <div style={heroChecklistStyle}>
+            <div style={checklistTitleStyle}>What your team should expect</div>
+            <ChecklistItem>Receive goods, dispatch goods, and count stock from the same system.</ChecklistItem>
+            <ChecklistItem>Use the dashboard to see what needs attention before it becomes a loss.</ChecklistItem>
+            <ChecklistItem>Use How It Works inside the app whenever a new user needs guidance.</ChecklistItem>
           </div>
         </section>
       </div>
@@ -254,7 +255,7 @@ const eyebrowStyle = {
 const heroTitleStyle = {
   fontFamily: 'Syne, sans-serif',
   fontWeight: 800,
-  fontSize: 46,
+  fontSize: 42,
   lineHeight: 1,
   letterSpacing: '-0.05em',
   color: '#f4efee',
@@ -264,7 +265,7 @@ const heroTitleStyle = {
 const heroCopyStyle = {
   marginTop: 18,
   maxWidth: 620,
-  color: '#9bb0b4',
+  color: '#c3b7b5',
   fontSize: 15,
   lineHeight: 1.7,
 }
@@ -295,8 +296,8 @@ const checklistTitleStyle = {
 const authPanelStyle = {
   borderRadius: 28,
   padding: '34px 30px',
-  border: '1px solid rgba(126, 155, 160, 0.12)',
-  background: 'linear-gradient(180deg, rgba(17,29,32,0.96) 0%, rgba(8,16,18,0.98) 100%)',
+  border: '1px solid rgba(212, 135, 121, 0.12)',
+  background: 'linear-gradient(180deg, rgba(32,26,24,0.96) 0%, rgba(18,15,14,0.98) 100%)',
   boxShadow: '0 24px 72px rgba(0,0,0,0.3)',
 }
 
@@ -305,14 +306,14 @@ const wordmarkStyle = {
   fontWeight: 800,
   fontSize: 34,
   letterSpacing: '-0.05em',
-  color: '#f5fbf8',
+  color: '#f4efee',
 }
 
 const subtitleStyle = {
   fontFamily: 'DM Mono, monospace',
   fontSize: 10,
   letterSpacing: '0.18em',
-  color: '#6f858d',
+  color: '#918685',
   textTransform: 'uppercase',
   marginTop: 4,
 }
@@ -324,7 +325,7 @@ const modeTabsStyle = {
   padding: 6,
   borderRadius: 16,
   background: 'rgba(255,255,255,0.03)',
-  border: '1px solid rgba(126, 155, 160, 0.12)',
+  border: '1px solid rgba(212, 135, 121, 0.12)',
 }
 
 const modeTabStyle = {
@@ -340,8 +341,8 @@ const modeTabStyle = {
 }
 
 const modeTabActiveStyle = {
-  background: 'linear-gradient(135deg, rgba(43,227,180,0.95) 0%, rgba(123,255,219,0.84) 100%)',
-  color: '#04110f',
+  background: 'linear-gradient(135deg, rgba(188,102,88,0.95) 0%, rgba(212,135,121,0.84) 100%)',
+  color: '#fff4f1',
 }
 
 const authHeaderStyle = {
@@ -353,13 +354,13 @@ const authTitleStyle = {
   fontFamily: 'Syne, sans-serif',
   fontWeight: 800,
   fontSize: 26,
-  color: '#f2f8f6',
+  color: '#f4efee',
   letterSpacing: '-0.03em',
 }
 
 const authCopyStyle = {
   marginTop: 8,
-  color: '#8ea2a8',
+  color: '#c3b7b5',
   fontSize: 14,
   lineHeight: 1.6,
 }
@@ -370,9 +371,9 @@ const noticeStyle = {
   gap: 10,
   padding: '10px 14px',
   borderRadius: 14,
-  border: '1px solid rgba(109, 198, 255, 0.2)',
-  background: 'rgba(109, 198, 255, 0.08)',
-  color: '#8fd8ff',
+  border: '1px solid rgba(212, 135, 121, 0.18)',
+  background: 'rgba(212, 135, 121, 0.08)',
+  color: '#e3bbb4',
   fontSize: 13,
   marginBottom: 18,
 }
@@ -381,16 +382,16 @@ const noticeDotStyle = {
   width: 8,
   height: 8,
   borderRadius: '50%',
-  background: '#6dc6ff',
+  background: '#d48779',
 }
 
 const inputStyle = {
   width: '100%',
   padding: '13px 14px',
   borderRadius: 16,
-  border: '1px solid rgba(126, 155, 160, 0.14)',
-  background: 'rgba(4,9,10,0.7)',
-  color: '#eef6f4',
+  border: '1px solid rgba(212, 135, 121, 0.14)',
+  background: 'rgba(14,12,12,0.72)',
+  color: '#f4efee',
   fontFamily: 'DM Sans, sans-serif',
   fontSize: 14,
 }
@@ -400,7 +401,7 @@ const labelStyle = {
   fontFamily: 'DM Mono, monospace',
   fontSize: 10,
   letterSpacing: '0.16em',
-  color: '#6f858d',
+  color: '#918685',
   textTransform: 'uppercase',
   marginBottom: 8,
 }
@@ -417,22 +418,22 @@ const messageStyle = {
 const submitButtonStyle = {
   width: '100%',
   padding: '14px 16px',
-  border: '1px solid rgba(43, 227, 180, 0.36)',
+  border: '1px solid rgba(212, 135, 121, 0.36)',
   borderRadius: 18,
-  background: 'linear-gradient(135deg, #2be3b4 0%, #7bffdb 100%)',
-  color: '#04110f',
+  background: 'linear-gradient(135deg, #bc6658 0%, #d48779 100%)',
+  color: '#fff4f1',
   cursor: 'pointer',
   fontFamily: 'Syne, sans-serif',
   fontWeight: 800,
   fontSize: 15,
   letterSpacing: '-0.02em',
-  boxShadow: '0 16px 34px rgba(43, 227, 180, 0.18)',
+  boxShadow: '0 16px 34px rgba(188, 102, 88, 0.18)',
 }
 
 const footerMetaStyle = {
   marginTop: 22,
   paddingTop: 18,
-  borderTop: '1px solid rgba(126, 155, 160, 0.12)',
+  borderTop: '1px solid rgba(212, 135, 121, 0.12)',
 }
 
 const footerPillStyle = {
@@ -444,12 +445,12 @@ const footerPillStyle = {
   letterSpacing: '0.14em',
   textTransform: 'uppercase',
   background: 'rgba(255,255,255,0.04)',
-  color: '#90a5ab',
+  color: '#bdaead',
 }
 
 const footerCopyStyle = {
   marginTop: 12,
-  color: '#768a90',
+  color: '#a89997',
   fontSize: 12,
   lineHeight: 1.6,
 }
@@ -459,7 +460,7 @@ const metricLabelStyle = {
   fontSize: 10,
   letterSpacing: '0.16em',
   textTransform: 'uppercase',
-  color: '#6e858b',
+  color: '#8d7f7d',
   marginBottom: 8,
 }
 
@@ -467,7 +468,7 @@ const metricValueStyle = {
   fontFamily: 'Syne, sans-serif',
   fontWeight: 800,
   fontSize: 20,
-  color: '#f3f8f7',
+  color: '#f4efee',
 }
 
 const loginStyles = `
@@ -477,8 +478,8 @@ const loginStyles = `
 
   input:focus {
     outline: none;
-    border-color: #2be3b4 !important;
-    box-shadow: 0 0 0 4px rgba(43, 227, 180, 0.08);
+    border-color: #d48779 !important;
+    box-shadow: 0 0 0 4px rgba(212, 135, 121, 0.08);
   }
 
   button:hover {
@@ -488,6 +489,17 @@ const loginStyles = `
   @media (max-width: 980px) {
     .login-grid {
       grid-template-columns: 1fr;
+    }
+  }
+
+  @media (max-width: 720px) {
+    section {
+      padding: 24px 18px !important;
+      border-radius: 22px !important;
+    }
+
+    .login-grid {
+      gap: 14px !important;
     }
   }
 `

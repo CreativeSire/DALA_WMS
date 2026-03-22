@@ -2,9 +2,11 @@ import { useState, useEffect } from 'react'
 import { useAuth } from '../App'
 import { Card, Button, Input, Select, Modal, Table, PageHeader, Alert, Badge, SectionCard, StatStrip, TextArea } from '../components/ui'
 import { allocateFIFOFromBatches, getAvailableQuantity } from '../lib/inventory'
+import { useIsCompact } from '../lib/useIsCompact'
 
 export default function DispatchPage() {
   const { supabase, api, authMode, profile } = useAuth()
+  const isCompact = useIsCompact(860)
   const [dispatches, setDispatches] = useState([])
   const [products, setProducts] = useState([])
   const [showModal, setShowModal] = useState(false)
@@ -221,6 +223,27 @@ export default function DispatchPage() {
         ]} />
       </SectionCard>
 
+      <SectionCard
+        eyebrow="Mobile Workflow"
+        title="How to dispatch from the floor"
+        subtitle="Keep dispatch simple: prepare the order, let FIFO guide stock selection, then confirm at the gate."
+        style={{ marginBottom: 20 }}
+      >
+        <div style={{ display: 'grid', gridTemplateColumns: isCompact ? '1fr' : 'repeat(4, minmax(0, 1fr))', gap: 12 }}>
+          {[
+            ['1. Enter retailer', 'Start with the customer and destination.'],
+            ['2. Add items', 'Choose products and quantity to move.'],
+            ['3. Let FIFO guide', 'The system checks available stock and older batches first.'],
+            ['4. Confirm departure', 'Security confirms the load actually left the warehouse.'],
+          ].map(([title, copy]) => (
+            <div key={title} style={workflowCardStyle}>
+              <div style={workflowTitleStyle}>{title}</div>
+              <div style={workflowCopyStyle}>{copy}</div>
+            </div>
+          ))}
+        </div>
+      </SectionCard>
+
       <Card style={{ padding: 0, overflow: 'hidden' }}>
         <Table
           headers={['Dispatch #', 'Retailer', 'Dispatched By', 'Date', 'Status', 'Action']}
@@ -279,7 +302,7 @@ export default function DispatchPage() {
                         )}
                       </div>
                     </div>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 10 }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: isCompact ? '1fr' : 'repeat(auto-fit, minmax(160px, 1fr))', gap: 10 }}>
                       <div style={{ gridColumn: '1 / -1' }}>
                         <Select label="Product" value={line.productId} onChange={e => updateLine(i, 'productId', e.target.value)} required>
                           <option value="">Select product...</option>
@@ -338,4 +361,25 @@ export default function DispatchPage() {
       )}
     </div>
   )
+}
+
+const workflowCardStyle = {
+  borderRadius: 16,
+  padding: 16,
+  border: '1px solid rgba(212, 135, 121, 0.12)',
+  background: 'rgba(255,255,255,0.02)',
+}
+
+const workflowTitleStyle = {
+  fontFamily: 'Syne, sans-serif',
+  fontWeight: 700,
+  fontSize: 17,
+  color: '#f4efee',
+  marginBottom: 8,
+}
+
+const workflowCopyStyle = {
+  fontSize: 13,
+  lineHeight: 1.6,
+  color: '#b9aeac',
 }

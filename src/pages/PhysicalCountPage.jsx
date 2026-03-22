@@ -2,11 +2,13 @@ import { useState, useEffect } from 'react'
 import { useAuth } from '../App'
 import { Card, PageHeader, Table, Badge, Button, Alert, Modal, Input, SectionCard, StatStrip, SegmentedControl, TextArea } from '../components/ui'
 import { planCountAdjustment } from '../lib/inventory'
+import { useIsCompact } from '../lib/useIsCompact'
 
 const STATUS_COLOR = { open:'#4fc3f7', submitted:'#ffb547', approved:'#00e5a0', closed:'#4a6068' }
 
 export default function PhysicalCountPage() {
   const { supabase, api, authMode, profile } = useAuth()
+  const isCompact = useIsCompact(860)
   const [sessions, setSessions] = useState([])
   const [activeSession, setActiveSession] = useState(null)
   const [countLines, setCountLines] = useState([])
@@ -357,6 +359,68 @@ export default function PhysicalCountPage() {
           </div>
         </SectionCard>
 
+        {isCompact ? (
+          <div style={{ display: 'grid', gap: 12 }}>
+            {displayed.length === 0 ? (
+              <EmptyCard text="No lines match your filter." />
+            ) : displayed.map((line) => {
+              const hasVariance = line.variance !== null && line.variance !== 0
+              const isPositive = line.variance > 0
+              return (
+                <Card key={line.line_id} style={{ padding: 16 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'flex-start', marginBottom: 12 }}>
+                    <div>
+                      <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 18, color: '#f4efee' }}>{line.product_name}</div>
+                      <div style={{ fontSize: 12, color: '#a89997', marginTop: 4 }}>{line.brand_partner}</div>
+                    </div>
+                    <Badge color={hasVariance ? (isPositive ? '#d48779' : '#bc6658') : '#8d7f7d'}>{line.sku_code}</Badge>
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 10, marginBottom: 12 }}>
+                    <Metric label="System" value={parseFloat(line.system_quantity).toFixed(2)} />
+                    <Metric label="Variance" value={line.variance !== null ? `${isPositive ? '+' : ''}${parseFloat(line.variance).toFixed(2)}` : '—'} accent={hasVariance ? (isPositive ? '#d48779' : '#bc6658') : '#8d7f7d'} />
+                  </div>
+
+                  <div style={{ marginBottom: 12 }}>
+                    <div style={{ fontFamily: 'DM Mono, monospace', fontSize: 10, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#8d7f7d', marginBottom: 8 }}>Physical Count</div>
+                    {activeSession.status === 'open' && canCount ? (
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        defaultValue={line.counted_quantity ?? ''}
+                        onBlur={e => saveCount(line.line_id, e.target.value)}
+                        placeholder="Enter counted quantity"
+                        style={{ width: '100%', padding: '12px 14px', background: '#141111', border: `1px solid ${hasVariance ? '#d29b6f' : '#3b2c29'}`, borderRadius: 14, color: '#f4efee', fontFamily: 'DM Mono, monospace', fontSize: 15 }}
+                      />
+                    ) : (
+                      <div style={{ padding: '12px 14px', borderRadius: 14, border: '1px solid rgba(212, 135, 121, 0.12)', color: '#f4efee', fontFamily: 'DM Mono, monospace' }}>
+                        {line.counted_quantity !== null ? parseFloat(line.counted_quantity).toFixed(2) : '—'}
+                      </div>
+                    )}
+                  </div>
+
+                  <div>
+                    <div style={{ fontFamily: 'DM Mono, monospace', fontSize: 10, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#8d7f7d', marginBottom: 8 }}>Variance Note</div>
+                    {hasVariance && activeSession.status === 'open' && canCount ? (
+                      <textarea
+                        defaultValue={line.variance_note ?? ''}
+                        onBlur={e => saveVarianceNote(line.line_id, e.target.value)}
+                        placeholder="Explain what caused the difference..."
+                        rows={3}
+                        style={{ width: '100%', padding: '12px 14px', background: '#141111', border: '1px solid #3b2c29', borderRadius: 14, color: '#f4efee', fontFamily: 'DM Sans, sans-serif', fontSize: 14, resize: 'vertical' }}
+                      />
+                    ) : (
+                      <div style={{ color: '#b9aeac', fontSize: 13, lineHeight: 1.6 }}>
+                        {line.variance_note || (hasVariance ? 'Note needed before approval.' : 'No variance note needed.')}
+                      </div>
+                    )}
+                  </div>
+                </Card>
+              )
+            })}
+          </div>
+        ) : (
         <Card style={{ padding:0, overflow:'hidden' }}>
           <div style={{ overflowX:'auto' }}>
             <table style={{ width:'100%', borderCollapse:'collapse', fontSize:13 }}>
@@ -425,6 +489,7 @@ export default function PhysicalCountPage() {
             </table>
           </div>
         </Card>
+        )}
       </div>
     )
   }
@@ -441,6 +506,27 @@ export default function PhysicalCountPage() {
       />
 
       <Alert message={alert.message} type={alert.type} />
+
+      <SectionCard
+        eyebrow="Mobile Workflow"
+        title="How to count on the floor"
+        subtitle="Open the session, walk the warehouse, enter the real quantity, explain any difference, then submit for approval."
+        style={{ marginBottom: 18 }}
+      >
+        <div style={{ display: 'grid', gridTemplateColumns: isCompact ? '1fr' : 'repeat(4, minmax(0, 1fr))', gap: 12 }}>
+          {[
+            ['1. Open session', 'Freeze the system view before the team starts counting.'],
+            ['2. Count physically', 'Enter the quantity seen on the floor, not what you expect.'],
+            ['3. Explain variance', 'Shortages and extras need notes before approval.'],
+            ['4. Approve correction', 'Only approved sessions adjust the stock record.'],
+          ].map(([title, copy]) => (
+            <div key={title} style={mobileWorkflowCardStyle}>
+              <div style={mobileWorkflowTitleStyle}>{title}</div>
+              <div style={mobileWorkflowCopyStyle}>{copy}</div>
+            </div>
+          ))}
+        </div>
+      </SectionCard>
 
       {loading ? (
         <div style={{ color:'#4a6068', fontFamily:'DM Mono, monospace', fontSize:12, padding:24 }}>Loading...</div>
@@ -473,7 +559,7 @@ export default function PhysicalCountPage() {
           </p>
           <form onSubmit={createSession}>
             <TextArea label="Notes (optional)" value={newNotes} onChange={e => setNewNotes(e.target.value)} placeholder="e.g. Monthly count — March 2026, fast movers first, cold chain excluded" rows={3} />
-            <div style={{ display:'flex', gap:12, justifyContent:'flex-end', marginTop:8 }}>
+            <div style={{ display:'flex', gap:12, justifyContent:'flex-end', marginTop:8, flexWrap:'wrap' }}>
               <Button type="button" variant="ghost" onClick={() => setShowNewModal(false)}>Cancel</Button>
               <Button type="submit" disabled={saving}>{saving ? 'Opening...' : 'Open Count Session →'}</Button>
             </div>
@@ -482,4 +568,42 @@ export default function PhysicalCountPage() {
       )}
     </div>
   )
+}
+
+function Metric({ label, value, accent = '#d48779' }) {
+  return (
+    <div style={{ borderRadius: 14, border: '1px solid rgba(212, 135, 121, 0.12)', padding: 12, background: 'rgba(255,255,255,0.02)' }}>
+      <div style={{ fontFamily: 'DM Mono, monospace', fontSize: 10, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#8d7f7d', marginBottom: 8 }}>{label}</div>
+      <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 20, color: accent }}>{value}</div>
+    </div>
+  )
+}
+
+function EmptyCard({ text }) {
+  return (
+    <Card>
+      <div style={{ color: '#a89997', fontSize: 13, fontFamily: 'DM Mono, monospace' }}>{text}</div>
+    </Card>
+  )
+}
+
+const mobileWorkflowCardStyle = {
+  borderRadius: 16,
+  padding: 16,
+  border: '1px solid rgba(212, 135, 121, 0.12)',
+  background: 'rgba(255,255,255,0.02)',
+}
+
+const mobileWorkflowTitleStyle = {
+  fontFamily: 'Syne, sans-serif',
+  fontWeight: 700,
+  fontSize: 17,
+  color: '#f4efee',
+  marginBottom: 8,
+}
+
+const mobileWorkflowCopyStyle = {
+  fontSize: 13,
+  lineHeight: 1.6,
+  color: '#b9aeac',
 }

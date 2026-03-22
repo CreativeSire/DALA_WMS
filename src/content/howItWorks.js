@@ -213,3 +213,26 @@ export const pageGuides = [
 ]
 
 export const maintenanceNote = 'Keep this page practical. When the system changes, update this guide with the new user process, not a technical changelog.'
+
+export const aiAssistGuide = [
+  {
+    title: 'Anomaly detection',
+    detail: 'The system should warn when a dispatch is unusually large for a product compared with its normal pattern. This helps the team catch mistakes before stock leaves the warehouse.',
+  },
+  {
+    title: 'Smart alerts',
+    detail: 'The system should point out which batches need to move first this week based on expiry risk, slow movement, and stock pressure.',
+  },
+  {
+    title: 'Count review help',
+    detail: 'The system should group suspicious variances and point out when they look connected to the same partner, batch, or product family.',
+  },
+  {
+    title: 'Ops summaries',
+    detail: 'Managers should get a short daily summary of stock risks, pending approvals, delayed actions, and unusual movement without digging through every page.',
+  },
+  {
+    title: 'Document capture',
+    detail: 'The system should read delivery notes or invoices and suggest GRN lines before the receiver confirms them. Staff should still review and approve before stock is posted.',
+  },
+]
