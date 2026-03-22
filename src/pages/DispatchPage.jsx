@@ -20,6 +20,8 @@ export default function DispatchPage() {
   const [dispatchNotes, setDispatchNotes] = useState('')
   const [lines, setLines] = useState([newLine()])
   const [availableBatches, setAvailableBatches] = useState({}) // productId -> batches
+  const [dispatchWarnings, setDispatchWarnings] = useState([])
+  const [analyzing, setAnalyzing] = useState(false)
 
   function newLine() { return { productId: '', quantity: '', unitFraction: '1' } }
 
@@ -70,6 +72,35 @@ export default function DispatchPage() {
       return updated
     }))
   }
+
+  useEffect(() => {
+    if (!showModal || authMode !== 'api') {
+      setDispatchWarnings([])
+      setAnalyzing(false)
+      return
+    }
+
+    const validLines = lines.filter((line) => line.productId && line.quantity)
+    if (!validLines.length) {
+      setDispatchWarnings([])
+      setAnalyzing(false)
+      return
+    }
+
+    const timer = setTimeout(async () => {
+      setAnalyzing(true)
+      try {
+        const response = await api.post('/api/dispatches/analyze', { lines: validLines })
+        setDispatchWarnings(response.warnings || [])
+      } catch (_error) {
+        setDispatchWarnings([])
+      } finally {
+        setAnalyzing(false)
+      }
+    }, 350)
+
+    return () => clearTimeout(timer)
+  }, [showModal, authMode, lines])
 
   async function handleSubmit(e) {
     e.preventDefault()
@@ -186,7 +217,7 @@ export default function DispatchPage() {
 
   function resetForm() {
     setRetailerName(''); setRetailerAddress(''); setDispatchNotes('')
-    setLines([newLine()]); setAvailableBatches({})
+    setLines([newLine()]); setAvailableBatches({}); setDispatchWarnings([])
   }
 
   function showAlert(message, type) {
@@ -282,6 +313,32 @@ export default function DispatchPage() {
                 <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 14, color: '#e0e8ea' }}>Product Lines</div>
                 <div style={{ fontFamily: 'DM Mono, monospace', fontSize: 10, color: '#00e5a0', letterSpacing: '0.08em' }}>FIFO AUTO-ENFORCED</div>
               </div>
+
+              {(analyzing || dispatchWarnings.length > 0) && (
+                <div style={{ display: 'grid', gap: 10, marginBottom: 14 }}>
+                  {analyzing && (
+                    <div style={{ padding: 12, borderRadius: 12, border: '1px solid rgba(212, 135, 121, 0.12)', background: 'rgba(212, 135, 121, 0.06)', color: '#d9b6af', fontSize: 13 }}>
+                      Checking whether any dispatch line looks unusually large for its SKU...
+                    </div>
+                  )}
+                  {dispatchWarnings.map((warning) => (
+                    <div key={`${warning.productId}-${warning.severity}`} style={{
+                      padding: 12,
+                      borderRadius: 12,
+                      border: `1px solid ${warning.severity === 'high' ? 'rgba(188, 102, 88, 0.24)' : 'rgba(210, 155, 111, 0.24)'}`,
+                      background: warning.severity === 'high' ? 'rgba(188, 102, 88, 0.10)' : 'rgba(210, 155, 111, 0.08)',
+                    }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, alignItems: 'center', marginBottom: 6, flexWrap: 'wrap' }}>
+                        <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 15, color: '#f4efee' }}>{warning.productName}</div>
+                        <Badge color={warning.severity === 'high' ? '#bc6658' : warning.severity === 'medium' ? '#d29b6f' : '#d48779'}>
+                          {warning.severity} anomaly
+                        </Badge>
+                      </div>
+                      <div style={{ fontSize: 13, color: '#d0c3c0', lineHeight: 1.6 }}>{warning.message}</div>
+                    </div>
+                  ))}
+                </div>
+              )}
 
               {lines.map((line, i) => {
                 const batches = availableBatches[line.productId] || []

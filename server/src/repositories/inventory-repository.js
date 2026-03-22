@@ -1,5 +1,6 @@
 import { withTransaction, query } from '../lib/db.js'
 import { createHttpError } from '../lib/http.js'
+import { buildCountVarianceInsights, buildDailyOpsSummary, rankMoveFirstBatches, scoreDispatchAnomalies } from '../lib/ai-assist.js'
 
 function mapCurrentStockRow(row) {
   return {
@@ -197,13 +198,146 @@ export async function getPendingCasualtyCount() {
   return rows[0]?.count || 0
 }
 
+export async function getPendingDispatchCount() {
+  const { rows } = await query(`SELECT COUNT(*)::int AS count FROM dispatch_notes WHERE status = 'pending'`)
+  return rows[0]?.count || 0
+}
+
+export async function getSubmittedCountSessionCount() {
+  const { rows } = await query(`SELECT COUNT(*)::int AS count FROM count_sessions WHERE status = 'submitted'`)
+  return rows[0]?.count || 0
+}
+
+export async function getDispatchProductStats(productIds, { days = 120 } = {}) {
+  if (!productIds.length) return []
+  const { rows } = await query(
+    `
+      SELECT
+        di.product_id,
+        p.name AS product_name,
+        p.sku_code,
+        COUNT(*)::int AS dispatch_count,
+        COALESCE(AVG(di.quantity_dispatched), 0) AS avg_qty,
+        COALESCE(MAX(di.quantity_dispatched), 0) AS max_qty
+      FROM dispatch_items di
+      JOIN dispatch_notes dn ON dn.id = di.dispatch_id
+      JOIN products p ON p.id = di.product_id
+      WHERE di.product_id = ANY($1::uuid[])
+        AND dn.created_at >= NOW() - make_interval(days => $2)
+      GROUP BY di.product_id, p.name, p.sku_code
+    `,
+    [productIds, days],
+  )
+  return rows
+}
+
+export async function analyzeDispatchLines(lines) {
+  const productIds = [...new Set(lines.map((line) => line.productId).filter(Boolean))]
+  const stats = await getDispatchProductStats(productIds)
+  const warnings = scoreDispatchAnomalies(lines, stats)
+  return { warnings }
+}
+
+export async function getRecentDispatchAnomalies({ days = 1 } = {}) {
+  const { rows } = await query(
+    `
+      SELECT
+        di.product_id,
+        di.quantity_dispatched AS quantity,
+        p.name AS product_name,
+        p.sku_code,
+        dn.dispatch_number,
+        dn.retailer_name,
+        dn.created_at
+      FROM dispatch_items di
+      JOIN dispatch_notes dn ON dn.id = di.dispatch_id
+      JOIN products p ON p.id = di.product_id
+      WHERE dn.created_at >= NOW() - make_interval(days => $1)
+      ORDER BY dn.created_at DESC
+    `,
+    [days],
+  )
+
+  const warnings = scoreDispatchAnomalies(
+    rows.map((row) => ({
+      productId: row.product_id,
+      quantity: Number(row.quantity),
+      unitFraction: 1,
+    })),
+    await getDispatchProductStats([...new Set(rows.map((row) => row.product_id))]),
+  )
+
+  const warningByProduct = new Map(warnings.map((warning) => [warning.productId, warning]))
+  return rows
+    .map((row) => {
+      const warning = warningByProduct.get(row.product_id)
+      if (!warning) return null
+      return {
+        ...warning,
+        dispatchNumber: row.dispatch_number,
+        retailerName: row.retailer_name,
+        createdAt: row.created_at,
+      }
+    })
+    .filter(Boolean)
+}
+
+export async function getMoveFirstBatchAlerts({ limit = 8 } = {}) {
+  await refreshBatchStatuses()
+  const { rows } = await query(
+    `
+      SELECT
+        sb.id AS batch_id,
+        sb.batch_number,
+        sb.quantity_remaining,
+        sb.received_at,
+        sb.expiry_date,
+        p.id AS product_id,
+        p.name AS product_name,
+        p.sku_code,
+        bp.name AS brand_partner,
+        (CURRENT_DATE - sb.received_at::date) AS days_in_stock,
+        CASE
+          WHEN sb.expiry_date IS NULL THEN NULL
+          ELSE (sb.expiry_date - CURRENT_DATE)
+        END AS days_until_expiry
+      FROM stock_batches sb
+      JOIN products p ON p.id = sb.product_id
+      JOIN brand_partners bp ON bp.id = p.brand_partner_id
+      WHERE sb.status NOT IN ('depleted', 'written_off')
+        AND sb.quantity_remaining > 0
+      ORDER BY sb.received_at ASC
+    `,
+  )
+  return rankMoveFirstBatches(rows, limit)
+}
+
+export async function getOpsSummary() {
+  const [dashboard, moveFirstBatches, unusualDispatches, pendingDispatches, submittedCountSessions] = await Promise.all([
+    getDashboardData(),
+    getMoveFirstBatchAlerts({ limit: 5 }),
+    getRecentDispatchAnomalies({ days: 1 }),
+    getPendingDispatchCount(),
+    getSubmittedCountSessionCount(),
+  ])
+
+  return buildDailyOpsSummary({
+    dashboard,
+    moveFirstBatches,
+    unusualDispatches,
+    pendingDispatches,
+    submittedCountSessions,
+  })
+}
+
 export async function getDashboardData() {
-  const [stock, reorderAlerts, expiryAlerts, pendingCasualties, recentMovements] = await Promise.all([
+  const [stock, reorderAlerts, expiryAlerts, pendingCasualties, recentMovements, moveFirstBatches] = await Promise.all([
     getCurrentStock(),
     getReorderAlerts(),
     getExpiryAlerts(),
     getPendingCasualtyCount(),
     getMovements({ limit: 8 }),
+    getMoveFirstBatchAlerts({ limit: 5 }),
   ])
 
   return {
@@ -216,6 +350,7 @@ export async function getDashboardData() {
     recentMovements,
     stockAlerts: reorderAlerts,
     expiryAlerts: expiryAlerts.filter((row) => row.alert_level !== 'ok').slice(0, 6),
+    moveFirstBatches,
   }
 }
 
@@ -483,7 +618,8 @@ export async function createDispatch({ userId, retailerName, retailerAddress, no
     }
 
     await refreshBatchStatuses((text, params) => client.query(text, params))
-    return { dispatch, dispatchNumber }
+    const anomalyWarnings = (await analyzeDispatchLines(lines)).warnings
+    return { dispatch, dispatchNumber, anomalyWarnings }
   })
 }
 
@@ -802,18 +938,40 @@ export async function getCountSessionDetail(sessionId) {
     [sessionId],
   )
 
+  const lines = lineRows.rows.map((row) => ({
+    ...row,
+    system_quantity: Number(row.system_quantity),
+    counted_quantity: row.counted_quantity == null ? null : Number(row.counted_quantity),
+    variance: row.variance == null ? null : Number(row.variance),
+  }))
+
+  const batchFamilyRows = (
+    await query(
+      `
+        SELECT
+          cl.product_id,
+          SPLIT_PART(COALESCE(NULLIF(sb.batch_number, ''), 'NO-BATCH'), '-', 1) AS batch_family
+        FROM count_lines cl
+        JOIN stock_batches sb
+          ON sb.product_id = cl.product_id
+         AND sb.status NOT IN ('depleted', 'written_off')
+         AND sb.quantity_remaining > 0
+        WHERE cl.session_id = $1
+          AND cl.variance IS NOT NULL
+          AND cl.variance <> 0
+      `,
+      [sessionId],
+    )
+  ).rows
+
   return {
     session: {
       ...session,
       opener: { full_name: session.opened_by_name },
       approver: { full_name: session.approved_by_name },
     },
-    lines: lineRows.rows.map((row) => ({
-      ...row,
-      system_quantity: Number(row.system_quantity),
-      counted_quantity: row.counted_quantity == null ? null : Number(row.counted_quantity),
-      variance: row.variance == null ? null : Number(row.variance),
-    })),
+    lines,
+    insights: buildCountVarianceInsights(lines, batchFamilyRows),
   }
 }
 

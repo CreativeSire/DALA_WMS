@@ -16,7 +16,9 @@ export default function Dashboard({ setPage }) {
     recentMovements: [],
     stockAlerts: [],
     expiryAlerts: [],
+    moveFirstBatches: [],
   })
+  const [opsSummary, setOpsSummary] = useState(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => { load() }, [])
@@ -24,8 +26,12 @@ export default function Dashboard({ setPage }) {
   async function load() {
     setLoading(true)
     if (authMode === 'api') {
-      const dashboard = await api.get('/api/inventory/dashboard')
+      const [dashboard, summary] = await Promise.all([
+        api.get('/api/inventory/dashboard'),
+        api.get('/api/inventory/ops-summary'),
+      ])
       setData(dashboard)
+      setOpsSummary(summary)
       setLoading(false)
       return
     }
@@ -54,7 +60,9 @@ export default function Dashboard({ setPage }) {
       recentMovements: movements || [],
       stockAlerts: reorderData || [],
       expiryAlerts: expiryData || [],
+      moveFirstBatches: [],
     })
+    setOpsSummary(null)
     setLoading(false)
   }
 
@@ -123,6 +131,33 @@ export default function Dashboard({ setPage }) {
         </SectionCard>
       </div>
 
+      {opsSummary && (
+        <SectionCard
+          eyebrow="AI Assist"
+          title="Daily ops summary"
+          subtitle={opsSummary.headline}
+          style={{ marginBottom: 18 }}
+        >
+          <div style={{ display: 'grid', gridTemplateColumns: isCompact ? '1fr' : '1.1fr 0.9fr', gap: 16 }}>
+            <div style={{ display: 'grid', gap: 10 }}>
+              {opsSummary.summaryLines.map((line) => (
+                <div key={line} style={summaryLineStyle}>{line}</div>
+              ))}
+            </div>
+            <div style={{ display: 'grid', gap: 10 }}>
+              {opsSummary.priorities.length === 0 ? (
+                <EmptyState title="No urgent manager actions" copy="The summary does not see any urgent stock-control work right now." />
+              ) : opsSummary.priorities.map((priority) => (
+                <button key={priority.title} type="button" onClick={() => setPage(priority.page)} style={priorityCardStyle}>
+                  <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 16, color: '#f4efee', marginBottom: 6 }}>{priority.title}</div>
+                  <div style={{ fontSize: 13, color: '#c2b7b5', lineHeight: 1.6 }}>{priority.detail}</div>
+                </button>
+              ))}
+            </div>
+          </div>
+        </SectionCard>
+      )}
+
       <div style={{ display: 'grid', gridTemplateColumns: isCompact ? '1fr' : 'repeat(3, minmax(0, 1fr))', gap: 16 }}>
         <SectionCard
           eyebrow="Stock Risk"
@@ -153,16 +188,16 @@ export default function Dashboard({ setPage }) {
           title="Move these first"
           subtitle="Batches close to expiry should be visible before they become a write-off."
         >
-          {loading ? <SkeletonList /> : data.expiryAlerts.length === 0 ? <EmptyState title="Expiry under control" copy="No near-expiry or expired batches are waiting here." /> : (
+          {loading ? <SkeletonList /> : data.moveFirstBatches.length === 0 ? <EmptyState title="Expiry under control" copy="No priority batches are waiting here." /> : (
             <div style={{ display: 'grid', gap: 10 }}>
-              {data.expiryAlerts.slice(0, 5).map((item) => (
+              {data.moveFirstBatches.slice(0, 5).map((item) => (
                 <InfoRow
-                  key={`${item.product_id}-${item.batch_number}-${item.alert_level}`}
-                  title={item.product_name}
-                  sub={item.batch_number ? `Batch ${item.batch_number}` : 'No batch number'}
-                  badgeLabel={item.alert_level === 'expired' ? 'Expired' : 'Near'}
-                  badgeColor={item.alert_level === 'expired' ? '#bc6658' : '#d29b6f'}
-                  meta={item.days_until_expiry < 0 ? `${Math.abs(item.days_until_expiry)}d ago` : `${item.days_until_expiry}d left`}
+                  key={`${item.productId}-${item.batchNumber}-${item.score}`}
+                  title={item.productName}
+                  sub={item.batchNumber ? `Batch ${item.batchNumber}` : 'No batch number'}
+                  badgeLabel="Move first"
+                  badgeColor={item.daysUntilExpiry != null && item.daysUntilExpiry < 0 ? '#bc6658' : '#d29b6f'}
+                  meta={item.reason}
                 />
               ))}
             </div>
@@ -268,6 +303,25 @@ function InfoRow({ title, sub, badgeLabel, badgeColor, meta }) {
 
 function SkeletonList() {
   return <div>{[1, 2, 3].map((item) => <div key={item} style={{ height: 16, background: '#26201f', borderRadius: 6, marginBottom: 10, opacity: 1 - item * 0.18 }} />)}</div>
+}
+
+const summaryLineStyle = {
+  padding: 14,
+  borderRadius: 16,
+  border: '1px solid rgba(212, 135, 121, 0.12)',
+  background: 'rgba(255,255,255,0.02)',
+  color: '#cdbfbc',
+  fontSize: 14,
+  lineHeight: 1.6,
+}
+
+const priorityCardStyle = {
+  borderRadius: 16,
+  padding: 14,
+  border: '1px solid rgba(212, 135, 121, 0.14)',
+  background: 'rgba(212, 135, 121, 0.08)',
+  textAlign: 'left',
+  cursor: 'pointer',
 }
 
 function movementColor(type) {

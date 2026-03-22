@@ -7,6 +7,8 @@ import {
   getDashboardData,
   getExpiryAlerts,
   getMovements,
+  getMoveFirstBatchAlerts,
+  getOpsSummary,
   getReorderAlerts,
   listAvailableBatches,
   refreshBatchStatuses,
@@ -56,6 +58,14 @@ inventoryRouter.get(
 )
 
 inventoryRouter.get(
+  '/move-first',
+  asyncHandler(async (_req, res) => {
+    const batches = await getMoveFirstBatchAlerts()
+    res.json({ batches })
+  }),
+)
+
+inventoryRouter.get(
   '/expiry-alerts',
   asyncHandler(async (_req, res) => {
     const alerts = await getExpiryAlerts()
@@ -68,6 +78,14 @@ inventoryRouter.post(
   asyncHandler(async (_req, res) => {
     await refreshBatchStatuses()
     res.json({ message: 'Expiry statuses refreshed.' })
+  }),
+)
+
+inventoryRouter.get(
+  '/ops-summary',
+  asyncHandler(async (_req, res) => {
+    const summary = await getOpsSummary()
+    res.json(summary)
   }),
 )
 

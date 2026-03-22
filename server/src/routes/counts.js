@@ -54,6 +54,14 @@ countsRouter.get(
   }),
 )
 
+countsRouter.get(
+  '/:id/insights',
+  asyncHandler(async (req, res) => {
+    const detail = await getCountSessionDetail(req.params.id)
+    res.json({ insights: detail.insights || [] })
+  }),
+)
+
 countsRouter.patch(
   '/lines/:id',
   requireRole('admin', 'warehouse_manager', 'operations'),

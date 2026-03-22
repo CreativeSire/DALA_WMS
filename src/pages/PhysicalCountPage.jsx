@@ -19,6 +19,7 @@ export default function PhysicalCountPage() {
   const [newNotes, setNewNotes] = useState('')
   const [search, setSearch] = useState('')
   const [filterVariance, setFilterVariance] = useState(false)
+  const [varianceInsights, setVarianceInsights] = useState([])
 
   useEffect(() => { loadSessions() }, [])
 
@@ -43,6 +44,7 @@ export default function PhysicalCountPage() {
       const detail = await api.get(`/api/count-sessions/${session.id}`)
       setActiveSession(detail.session)
       setCountLines(detail.lines || [])
+      setVarianceInsights(detail.insights || [])
     } else {
       const { data } = await supabase
         .from('count_detail')
@@ -50,6 +52,7 @@ export default function PhysicalCountPage() {
         .eq('session_id', session.id)
         .order('brand_partner')
       setCountLines(data || [])
+      setVarianceInsights([])
     }
   }
 
@@ -65,6 +68,7 @@ export default function PhysicalCountPage() {
       const detail = await api.get(`/api/count-sessions/${response.session.id}`)
       setActiveSession(detail.session)
       setCountLines(detail.lines || [])
+      setVarianceInsights(detail.insights || [])
       setSaving(false)
       return
     }
@@ -239,6 +243,7 @@ export default function PhysicalCountPage() {
       loadSessions()
       setActiveSession(null)
       setCountLines([])
+      setVarianceInsights([])
     } catch (err) {
       showAlert(err.message, 'error')
     } finally {
@@ -288,7 +293,7 @@ export default function PhysicalCountPage() {
     return (
       <div>
         <div style={{ marginBottom: 24 }}>
-          <button onClick={() => { setActiveSession(null); setCountLines([]) }}
+          <button onClick={() => { setActiveSession(null); setCountLines([]); setVarianceInsights([]) }}
             style={{ background:'none', border:'none', color:'#4a6068', cursor:'pointer', fontFamily:'DM Mono, monospace', fontSize:12, letterSpacing:'0.08em', marginBottom:12, display:'flex', alignItems:'center', gap:6 }}>
             ← BACK TO SESSIONS
           </button>
@@ -338,6 +343,32 @@ export default function PhysicalCountPage() {
             { label:'With Variance', value: totalVariance, accent: totalVariance > 0 ? '#ffb547' : '#4a6068' },
           ]} />
         </SectionCard>
+
+        {varianceInsights.length > 0 && (
+          <SectionCard
+            eyebrow="AI Assist"
+            title="Variance review help"
+            subtitle="These links do not change stock. They help the approver focus on the most likely shared causes first."
+            style={{ marginBottom: 16 }}
+          >
+            <div style={{ display: 'grid', gap: 10 }}>
+              {varianceInsights.map((insight) => (
+                <div key={insight.title} style={{
+                  padding: 14,
+                  borderRadius: 16,
+                  border: `1px solid ${insight.severity === 'high' ? 'rgba(188, 102, 88, 0.22)' : 'rgba(210, 155, 111, 0.22)'}`,
+                  background: insight.severity === 'high' ? 'rgba(188, 102, 88, 0.10)' : 'rgba(210, 155, 111, 0.08)',
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, alignItems: 'center', marginBottom: 6, flexWrap: 'wrap' }}>
+                    <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 16, color: '#f4efee' }}>{insight.title}</div>
+                    <Badge color={insight.severity === 'high' ? '#bc6658' : '#d29b6f'}>{insight.severity}</Badge>
+                  </div>
+                  <div style={{ fontSize: 13, lineHeight: 1.6, color: '#d0c3c0' }}>{insight.detail}</div>
+                </div>
+              ))}
+            </div>
+          </SectionCard>
+        )}
 
         <SectionCard style={{ marginBottom: 16 }}>
           <div style={{ display:'flex', gap:12, marginBottom:0, flexWrap:'wrap', alignItems:'flex-end' }}>

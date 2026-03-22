@@ -2,7 +2,7 @@ import { Router } from 'express'
 import { z } from 'zod'
 import { asyncHandler, createHttpError } from '../lib/http.js'
 import { requireAuth, requireRole } from '../middleware/auth.js'
-import { confirmDispatch, createDispatch, listDispatches } from '../repositories/inventory-repository.js'
+import { analyzeDispatchLines, confirmDispatch, createDispatch, listDispatches } from '../repositories/inventory-repository.js'
 
 const lineSchema = z.object({
   productId: z.string().uuid(),
@@ -30,6 +30,16 @@ dispatchesRouter.get(
 )
 
 dispatchesRouter.post(
+  '/analyze',
+  requireRole('admin', 'operations', 'warehouse_manager'),
+  asyncHandler(async (req, res) => {
+    const payload = dispatchSchema.pick({ lines: true }).parse(req.body)
+    const result = await analyzeDispatchLines(payload.lines)
+    res.json(result)
+  }),
+)
+
+dispatchesRouter.post(
   '/',
   requireRole('admin', 'operations', 'warehouse_manager'),
   asyncHandler(async (req, res) => {
@@ -45,6 +55,7 @@ dispatchesRouter.post(
       message: `Dispatch ${result.dispatchNumber} created.`,
       dispatch: result.dispatch,
       dispatchNumber: result.dispatchNumber,
+      anomalyWarnings: result.anomalyWarnings,
     })
   }),
 )

@@ -217,22 +217,22 @@ export const maintenanceNote = 'Keep this page practical. When the system change
 export const aiAssistGuide = [
   {
     title: 'Anomaly detection',
-    detail: 'The system should warn when a dispatch is unusually large for a product compared with its normal pattern. This helps the team catch mistakes before stock leaves the warehouse.',
+    detail: 'The system now warns when a dispatch is unusually large for a product compared with its normal pattern. This helps the team catch mistakes before stock leaves the warehouse.',
   },
   {
     title: 'Smart alerts',
-    detail: 'The system should point out which batches need to move first this week based on expiry risk, slow movement, and stock pressure.',
+    detail: 'The system now points out which batches should move first this week based on expiry risk and age in stock.',
   },
   {
     title: 'Count review help',
-    detail: 'The system should group suspicious variances and point out when they look connected to the same partner, batch, or product family.',
+    detail: 'The system now groups suspicious variances and points out when they look connected to the same partner or live batch family.',
   },
   {
     title: 'Ops summaries',
-    detail: 'Managers should get a short daily summary of stock risks, pending approvals, delayed actions, and unusual movement without digging through every page.',
+    detail: 'Managers now get a short daily summary of stock risks, pending approvals, delayed actions, and unusual movement without digging through every page.',
   },
   {
     title: 'Document capture',
-    detail: 'The system should read delivery notes or invoices and suggest GRN lines before the receiver confirms them. Staff should still review and approve before stock is posted.',
+    detail: 'The next step is document capture: read delivery notes or invoices and suggest GRN lines before the receiver confirms them. Staff should still review and approve before stock is posted.',
   },
 ]
