@@ -157,7 +157,7 @@ function AccessDenied() {
       eyebrow="Restricted"
       title="Access denied"
       copy="Your assigned role does not permit this module. Use a role with the correct operational scope or return to a page you can access."
-      accent="#ff8552"
+      accent="#bc6658"
     />
   )
 }
@@ -166,27 +166,27 @@ function DeploymentSetupPage() {
   return (
     <div style={setupShellStyle}>
       <style>{setupStyles}</style>
-      <div style={setupOrbStyle('10%', '8%', '#2be3b4')} />
-      <div style={setupOrbStyle('58%', '12%', '#ff8552')} />
-      <div style={setupOrbStyle('auto', '42%', '#6dc6ff', '72%')} />
+      <div style={setupOrbStyle('10%', '8%', '#d48779')} />
+      <div style={setupOrbStyle('58%', '12%', '#bc6658')} />
+      <div style={setupOrbStyle('auto', '42%', '#8a5d56', '72%')} />
 
       <div style={{ maxWidth: 1180, margin: '0 auto', position: 'relative', zIndex: 1 }}>
         <div style={{ marginBottom: 24 }}>
-          <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 800, fontSize: 34, letterSpacing: '-0.04em', color: '#f4fbf8' }}>
-            DALA <span style={{ color: '#2be3b4' }}>WMS</span>
+          <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 800, fontSize: 34, letterSpacing: '-0.04em', color: '#f4efee' }}>
+            DALA <span style={{ color: '#d48779' }}>WMS</span>
           </div>
-          <div style={{ fontFamily: 'DM Mono, monospace', fontSize: 11, color: '#6f858d', letterSpacing: '0.16em', textTransform: 'uppercase', marginTop: 6 }}>
+          <div style={{ fontFamily: 'DM Mono, monospace', fontSize: 11, color: '#94807d', letterSpacing: '0.16em', textTransform: 'uppercase', marginTop: 6 }}>
             Deployment Setup Required
           </div>
         </div>
 
         <div className="setup-grid" style={setupGridStyle}>
           <div style={setupIntroCardStyle}>
-            <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 800, fontSize: 34, lineHeight: 1.02, color: '#f2f8f6', letterSpacing: '-0.04em' }}>
-              This deployment needs its backend target before the live app can open.
+            <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 800, fontSize: 34, lineHeight: 1.02, color: '#f4efee', letterSpacing: '-0.04em' }}>
+              This deployment needs its backend target before the app can open.
             </div>
-            <div style={{ marginTop: 16, fontSize: 15, lineHeight: 1.7, color: '#98aeb2', maxWidth: 680 }}>
-              Point the frontend at the Railway API service using `VITE_API_BASE_URL` and redeploy. The setup screen is only a guard rail so blank environments do not crash.
+            <div style={{ marginTop: 16, fontSize: 15, lineHeight: 1.7, color: '#c2b7b5', maxWidth: 680 }}>
+              Point the frontend at the Railway API service using `VITE_API_BASE_URL` and redeploy. This page is only a safe fallback for empty environments.
             </div>
 
             <div style={setupChecklistCardStyle}>
@@ -197,10 +197,10 @@ function DeploymentSetupPage() {
           </div>
 
           <div style={setupVarsCardStyle}>
-            <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 22, color: '#f2f8f6', marginBottom: 10 }}>
+            <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 22, color: '#f4efee', marginBottom: 10 }}>
               Required environment
             </div>
-            <div style={{ fontSize: 14, color: '#8ea4a9', lineHeight: 1.6, marginBottom: 18 }}>
+            <div style={{ fontSize: 14, color: '#c2b7b5', lineHeight: 1.6, marginBottom: 18 }}>
               For the Railway backend deployment path, only the API base URL is required on the frontend.
             </div>
             <div style={{ display: 'grid', gap: 12 }}>
@@ -209,10 +209,6 @@ function DeploymentSetupPage() {
               <EnvRow name="VITE_SUPABASE_ANON_KEY" value="Optional only if you still run the Supabase fallback path" />
             </div>
           </div>
-        </div>
-
-        <div style={{ marginTop: 24 }}>
-          <HowItWorksPage />
         </div>
       </div>
     </div>
@@ -223,20 +219,20 @@ function LoadingScreen() {
   return (
     <ScreenFrame
       eyebrow="Loading"
-      title="Starting the live workspace"
-      copy="The frontend is checking your configured backend and restoring the active session."
-      accent="#2be3b4"
+      title="Starting the workspace"
+      copy="The frontend is checking your backend connection and restoring the active session."
+      accent="#d48779"
     />
   )
 }
 
 function EnvRow({ name, value }) {
   return (
-    <div style={{ background: 'rgba(5,10,12,0.7)', border: '1px solid rgba(126, 155, 160, 0.12)', borderRadius: 16, padding: 16 }}>
-      <div style={{ fontFamily: 'DM Mono, monospace', fontSize: 11, color: '#2be3b4', letterSpacing: '0.12em', marginBottom: 8 }}>
+    <div style={{ background: 'rgba(12,10,10,0.68)', border: '1px solid rgba(212, 135, 121, 0.12)', borderRadius: 16, padding: 16 }}>
+      <div style={{ fontFamily: 'DM Mono, monospace', fontSize: 11, color: '#d48779', letterSpacing: '0.12em', marginBottom: 8 }}>
         {name}
       </div>
-      <div style={{ fontFamily: 'DM Mono, monospace', fontSize: 12, color: '#7f969d', wordBreak: 'break-all', lineHeight: 1.6 }}>
+      <div style={{ fontFamily: 'DM Mono, monospace', fontSize: 12, color: '#b7aeac', wordBreak: 'break-all', lineHeight: 1.6 }}>
         {value}
       </div>
     </div>
@@ -246,8 +242,8 @@ function EnvRow({ name, value }) {
 function SetupBullet({ children }) {
   return (
     <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start', marginBottom: 10 }}>
-      <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#2be3b4', marginTop: 7, flexShrink: 0 }} />
-      <span style={{ color: '#b8c9cb', fontSize: 14, lineHeight: 1.6 }}>{children}</span>
+      <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#d48779', marginTop: 7, flexShrink: 0 }} />
+      <span style={{ color: '#d1c5c3', fontSize: 14, lineHeight: 1.6 }}>{children}</span>
     </div>
   )
 }
@@ -257,14 +253,14 @@ function ScreenFrame({ eyebrow, title, copy, accent }) {
     <div style={screenShellStyle}>
       <style>{setupStyles}</style>
       <div style={setupOrbStyle('12%', '9%', accent)} />
-      <div style={setupOrbStyle('60%', '12%', '#6dc6ff')} />
+      <div style={setupOrbStyle('60%', '12%', '#8a5d56')} />
       <div style={{
         maxWidth: 760,
         margin: '0 auto',
         padding: '40px 32px',
         borderRadius: 28,
-        border: '1px solid rgba(126, 155, 160, 0.12)',
-        background: 'linear-gradient(180deg, rgba(15,28,30,0.96) 0%, rgba(8,15,17,0.98) 100%)',
+        border: '1px solid rgba(212, 135, 121, 0.12)',
+        background: 'linear-gradient(180deg, rgba(32,26,24,0.96) 0%, rgba(20,16,15,0.98) 100%)',
         boxShadow: '0 26px 70px rgba(0,0,0,0.28)',
         position: 'relative',
         zIndex: 1,
@@ -272,10 +268,10 @@ function ScreenFrame({ eyebrow, title, copy, accent }) {
         <div style={{ fontFamily: 'DM Mono, monospace', fontSize: 11, letterSpacing: '0.18em', textTransform: 'uppercase', color: accent, marginBottom: 14 }}>
           {eyebrow}
         </div>
-        <div style={{ fontFamily: 'Syne, sans-serif', fontSize: 38, fontWeight: 800, lineHeight: 1.02, letterSpacing: '-0.05em', color: '#f4fbf8' }}>
+        <div style={{ fontFamily: 'Syne, sans-serif', fontSize: 38, fontWeight: 800, lineHeight: 1.02, letterSpacing: '-0.05em', color: '#f4efee' }}>
           {title}
         </div>
-        <div style={{ marginTop: 16, color: '#97adb1', fontSize: 15, lineHeight: 1.7 }}>
+        <div style={{ marginTop: 16, color: '#c2b7b5', fontSize: 15, lineHeight: 1.7 }}>
           {copy}
         </div>
       </div>
@@ -288,15 +284,15 @@ const screenShellStyle = {
   display: 'grid',
   placeItems: 'center',
   padding: 24,
-  background: '#071012',
+  background: '#171312',
   position: 'relative',
   overflow: 'hidden',
 }
 
 const setupShellStyle = {
   minHeight: '100vh',
-  background: '#071012',
-  color: '#e0e8ea',
+  background: '#171312',
+  color: '#e0d7d5',
   fontFamily: 'DM Sans, sans-serif',
   padding: '32px 18px 48px',
   position: 'relative',
@@ -312,15 +308,15 @@ const setupGridStyle = {
 const setupIntroCardStyle = {
   borderRadius: 28,
   padding: '34px 30px',
-  border: '1px solid rgba(126, 155, 160, 0.12)',
-  background: 'linear-gradient(180deg, rgba(14,26,28,0.96) 0%, rgba(8,15,17,0.98) 100%)',
+  border: '1px solid rgba(212, 135, 121, 0.12)',
+  background: 'linear-gradient(180deg, rgba(32,26,24,0.96) 0%, rgba(20,16,15,0.98) 100%)',
   boxShadow: '0 24px 70px rgba(0,0,0,0.26)',
 }
 
 const setupChecklistCardStyle = {
   marginTop: 24,
   borderRadius: 20,
-  border: '1px solid rgba(126, 155, 160, 0.12)',
+  border: '1px solid rgba(212, 135, 121, 0.12)',
   background: 'rgba(255,255,255,0.03)',
   padding: '18px 18px 8px',
 }
@@ -328,8 +324,8 @@ const setupChecklistCardStyle = {
 const setupVarsCardStyle = {
   borderRadius: 28,
   padding: '30px 26px',
-  border: '1px solid rgba(126, 155, 160, 0.12)',
-  background: 'linear-gradient(180deg, rgba(18,29,32,0.96) 0%, rgba(9,17,19,0.98) 100%)',
+  border: '1px solid rgba(212, 135, 121, 0.12)',
+  background: 'linear-gradient(180deg, rgba(32,26,24,0.96) 0%, rgba(20,16,15,0.98) 100%)',
   boxShadow: '0 24px 70px rgba(0,0,0,0.26)',
 }
 

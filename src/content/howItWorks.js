@@ -1,74 +1,111 @@
-// Update this file whenever a workflow, permission, or operational step changes.
-export const latestChanges = [
-  'The live deployment now runs against the Railway backend and Railway Postgres instead of frontend-direct Supabase queries.',
-  'Inventory pages, reports, partner summaries, and count sessions are now wired to the Railway API for production review.',
-  'Dispatch allocation validates against freshly fetched batch data and applies FIFO consistently during save.',
-  'Physical count approvals create reconciliation batches for positive variances when no active stock batch exists.',
-  'The app shell, shared UI system, and operator manual are embedded directly in the live product so training and operations stay aligned.',
-  'Invite emails, password reset emails, and admin audit logs are now part of the live Railway path when Resend or SMTP email settings are added.',
+export const introGuide = {
+  title: 'How It Works',
+  subtitle: 'A simple guide for the people who receive stock, move stock, count stock, and review warehouse activity every day.',
+  promise: [
+    'Every stock movement should be recorded inside the system when it happens.',
+    'The system is meant to reduce guesswork, reduce spreadsheet dependency, and make review easier.',
+    'If a movement is not logged here, it should be treated as not yet completed.',
+  ],
+}
+
+export const victorJourney = {
+  name: 'Victor',
+  role: 'Warehouse manager',
+  summary: 'Victor uses DALA WMS to receive goods, check stock, watch expiry risk, prepare dispatch, and complete stock counts without relying on separate paper sheets or Excel workbooks.',
+  steps: [
+    {
+      title: '1. Victor receives new goods',
+      detail: 'Victor opens Stock Intake (GRN), selects the partner, adds the products received, enters batch and expiry details where needed, and saves the receipt. Once saved, stock is available in the system.',
+    },
+    {
+      title: '2. Victor checks what is available',
+      detail: 'Victor uses the Dashboard, Ledger, and Reorder pages to see current stock, low stock items, and unusual movement before operations continue.',
+    },
+    {
+      title: '3. Victor prepares goods for dispatch',
+      detail: 'Victor opens Dispatch, chooses the products going out, and lets the system allocate from the right batches. This helps the team move older stock first and keeps the audit trail complete.',
+    },
+    {
+      title: '4. Victor manages risk before it becomes a loss',
+      detail: 'Victor watches the Expiry and Casualties pages so near-expiry goods, damaged goods, and write-offs are acted on quickly and approved properly.',
+    },
+    {
+      title: '5. Victor confirms what is physically on the floor',
+      detail: 'Victor opens Physical Count, records what is actually in the warehouse, submits the count, and approves the result so the system reflects reality instead of assumptions.',
+    },
+  ],
+}
+
+export const coreRules = [
+  'Receive stock with Stock Intake (GRN) before treating it as available.',
+  'Dispatch stock from Dispatch so the movement is traced to the correct batch.',
+  'Record damages, shortages, and write-offs in Casualties instead of adjusting stock silently.',
+  'Use Physical Count to correct differences between the system and what is on the floor.',
+  'Use Reports for review and export, not as the place where daily operations happen.',
 ]
 
-export const adminSetupChecklist = [
-  'Set `VITE_API_BASE_URL` on the Railway frontend service to the public API URL of the Railway backend service.',
-  'Set `DATABASE_URL`, `JWT_SECRET`, `FRONTEND_ORIGIN`, and the bootstrap admin credentials on the Railway API service.',
-  'For email delivery, prefer `RESEND_API_KEY` and `RESEND_FROM_EMAIL` on the Railway API service. Keep SMTP only as a fallback.',
-  'Run the backend bootstrap against Railway Postgres whenever schema changes are introduced so live tables stay in sync.',
-  'Open the Users page as an admin and create or invite users with the correct roles before broad team access.',
-  'Rotate the bootstrap admin password immediately after first login and keep environment secrets in Railway only.',
-  'When workflow, permissions, infrastructure, or onboarding rules change, update this manual in the same code change.',
+export const workflowVisuals = [
+  {
+    title: 'Inbound flow',
+    image: '/workflow-inbound.svg',
+    note: 'Goods come in, they are checked, they are entered in Stock Intake, and then they become part of live stock.',
+  },
+  {
+    title: 'Outbound flow',
+    image: '/workflow-outbound.svg',
+    note: 'Goods are selected for dispatch, batch allocation is recorded, the dispatch is confirmed, and the movement stays visible in the ledger.',
+  },
+  {
+    title: 'Count and correction flow',
+    image: '/workflow-count.svg',
+    note: 'The team counts what is physically present, compares it with system stock, records any difference, and approves the final correction.',
+  },
 ]
 
 export const roleGuides = [
   {
     role: 'Admin',
-    summary: 'Full-system control. Owns user administration, threshold policy, approvals, and final operational oversight.',
-    canAccess: ['Dashboard', 'How it Works', 'GRN', 'Dispatch', 'Ledger', 'Expiry', 'Casualties', 'Reorder', 'Partner Performance', 'Physical Count', 'Reports', 'Products', 'Brand Partners', 'Users'],
-    keyResponsibilities: [
-      'Create or invite users through the Users page.',
-      'Approve casualty write-offs and physical count adjustments when needed.',
-      'Manage master data such as products, partners, reorder thresholds, and expiry thresholds.',
-      'Review all exports and audit trails.',
+    summary: 'Oversees setup, access, control, and final review.',
+    responsibilities: [
+      'Manage users, product setup, and partner setup.',
+      'Review audit activity and sensitive changes.',
+      'Support operations when approval or system oversight is needed.',
     ],
   },
   {
     role: 'Warehouse Manager',
-    summary: 'Runs daily warehouse execution. Owns receiving, stock accuracy, batch visibility, and operational data quality.',
-    canAccess: ['Dashboard', 'How it Works', 'GRN', 'Dispatch', 'Ledger', 'Expiry', 'Casualties', 'Reorder', 'Physical Count', 'Reports', 'Products'],
-    keyResponsibilities: [
-      'Record all stock intake accurately as GRNs with correct batch and expiry data.',
-      'Prepare dispatches and maintain batch integrity.',
-      'Log damages/losses as casualties for approval.',
-      'Lead physical counts and enter variances with notes.',
+    summary: 'Runs day-to-day stock control inside the warehouse.',
+    responsibilities: [
+      'Receive stock through GRN.',
+      'Monitor expiry, low stock, and physical counts.',
+      'Review stock movement and warehouse accuracy.',
     ],
   },
   {
     role: 'Operations',
-    summary: 'Controls approvals, outbound flow, and inventory governance.',
-    canAccess: ['Dashboard', 'How it Works', 'Dispatch', 'Ledger', 'Expiry', 'Casualties', 'Reorder', 'Partner Performance', 'Physical Count', 'Reports', 'Products', 'Brand Partners'],
-    keyResponsibilities: [
-      'Approve or reject casualties.',
-      'Review and approve count sessions so ledger adjustments are posted.',
-      'Manage dispatch confirmations and partner-facing operational performance.',
-      'Maintain product/partner setup alongside admin users.',
+    summary: 'Handles movement planning, approvals, and performance review.',
+    responsibilities: [
+      'Create and confirm dispatch activity.',
+      'Review casualties and partner performance.',
+      'Use reports to follow operational performance.',
     ],
   },
   {
     role: 'Finance',
-    summary: 'Reads stock risk, ageing, and reconciliation outputs to understand exposure and reporting.',
-    canAccess: ['Dashboard', 'How it Works', 'Ledger', 'Expiry', 'Reorder', 'Partner Performance', 'Reports'],
-    keyResponsibilities: [
-      'Monitor expired and near-expiry exposure.',
-      'Track low-stock and out-of-stock positions against demand.',
-      'Review reconciliation and casualty reports for loss visibility.',
+    summary: 'Reviews numbers, risk, and reporting.',
+    responsibilities: [
+      'Monitor value-related reports and stock controls.',
+      'Review expiry, reorder, and movement summaries.',
+      'Use exports for reporting after operational work is already complete in the app.',
     ],
   },
   {
     role: 'Security',
-    summary: 'Verifies that prepared outbound stock physically exits the warehouse.',
-    canAccess: ['Dashboard', 'How it Works', 'Dispatch'],
-    keyResponsibilities: [
-      'Confirm pending dispatches at gate after physical load verification.',
-      'Use the dispatch number as the operational reference during truck departure checks.',
+    summary: 'Confirms outward stock movement at the gate or final control point.',
+    responsibilities: [
+      'Review dispatch details before release.',
+      'Confirm that goods leaving match what was approved.',
+      'Help maintain a clean dispatch audit trail.',
     ],
   },
 ]
@@ -77,329 +114,87 @@ export const pageGuides = [
   {
     id: 'dashboard',
     title: 'Dashboard',
-    purpose: 'Operational command center for the day.',
-    howItWorks: [
-      'Reads live counts from current stock, reorder alerts, expiry alerts, casualties, and stock movements.',
-      'Highlights shortages, expiry risks, and pending approvals.',
-      'Each alert card routes directly into the page where the issue can be worked.',
-    ],
-    useWhen: 'Use first at the start of every shift to see what needs attention.',
-  },
-  {
-    id: 'how-it-works',
-    title: 'How it Works',
-    purpose: 'Embedded operator manual and change log.',
-    howItWorks: [
-      'Explains each role and page in the live app.',
-      'Lists the latest workflow changes so operators can adapt without separate documentation.',
-      'Should be updated whenever product behavior or process rules change.',
-    ],
-    useWhen: 'Use for onboarding, refresher training, and process confirmation.',
+    purpose: 'Shows the quickest view of stock health, movement, and exceptions that need attention.',
+    useWhen: 'Use this first when you want to know what needs action now.',
   },
   {
     id: 'grn',
     title: 'Stock Intake (GRN)',
-    purpose: 'Records inbound goods from brand partners.',
-    howItWorks: [
-      'Creates one GRN header for the receipt and one or more GRN lines for the products received.',
-      'Each line creates a stock batch with quantity, expiry date, cost, and batch number where available.',
-      'Each line also writes a positive stock movement, so the ledger and current stock update immediately.',
-    ],
-    useWhen: 'Use every time physical stock is received into the warehouse.',
+    purpose: 'Records goods that have entered the warehouse and creates the stock batches the rest of the system depends on.',
+    useWhen: 'Use this every time new stock arrives.',
   },
   {
     id: 'dispatch',
     title: 'Dispatch',
-    purpose: 'Creates and confirms outbound stock movements.',
-    howItWorks: [
-      'Checks available stock by product using active batches only.',
-      'Allocates stock FIFO from the oldest received batches first.',
-      'Creates a pending dispatch note, deducts batch balances, records dispatch items, and writes negative stock movements.',
-      'Security or authorized operations staff later confirm the truck departure.',
-    ],
-    useWhen: 'Use when shipping stock out to a retailer or destination.',
+    purpose: 'Records goods leaving the warehouse and links the movement to the right stock batches.',
+    useWhen: 'Use this every time stock is picked and sent out.',
   },
   {
     id: 'ledger',
     title: 'Ledger',
-    purpose: 'Shows live stock and the full audit trail of inventory movement.',
-    howItWorks: [
-      'Current Stock uses a SQL view that aggregates batch balances per SKU.',
-      'Movement History reads from the immutable stock_movements table.',
-      'Exports are available for both views.',
-    ],
-    useWhen: 'Use for stock verification, audits, investigations, and export.',
+    purpose: 'Shows current stock and movement history so the team can review what happened and what remains.',
+    useWhen: 'Use this to investigate stock position or movement history.',
   },
   {
     id: 'expiry',
     title: 'Expiry Tracking',
-    purpose: 'Tracks near-expiry and expired stock by batch.',
-    howItWorks: [
-      'Uses each batch expiry date and each product alert threshold in days.',
-      'Refresh can trigger the batch-status update function in the database.',
-      'Thresholds can be changed per product by authorized users.',
-    ],
-    useWhen: 'Use for routine risk review and before promotional or liquidation decisions.',
+    purpose: 'Highlights batches that are close to expiry or already expired.',
+    useWhen: 'Use this to prevent losses and move risky stock early.',
   },
   {
     id: 'casualties',
     title: 'Casualties',
-    purpose: 'Logs and approves stock write-offs.',
-    howItWorks: [
-      'Warehouse staff log a casualty against a real batch and quantity.',
-      'No stock is deducted at logging time.',
-      'Operations/Admin approves or rejects the record.',
-      'Approval writes off the quantity from the batch and records a write_off movement.',
-    ],
-    useWhen: 'Use for damages, expiry loss, theft, missing stock, or other write-off events.',
+    purpose: 'Records damaged, lost, or unusable goods that need review and approval.',
+    useWhen: 'Use this when stock cannot be sold or used normally.',
   },
   {
     id: 'reorder',
     title: 'Reorder Alerts',
-    purpose: 'Highlights SKUs at or below configured reorder thresholds.',
-    howItWorks: [
-      'Reads the reorder_alerts SQL view, which compares current stock to each SKU threshold.',
-      'Shows out-of-stock and low-stock items separately.',
-      'Authorized users can edit thresholds directly from the page.',
-    ],
-    useWhen: 'Use when planning replenishment or escalation to suppliers.',
+    purpose: 'Shows products that are low or out of stock based on the levels set for each item.',
+    useWhen: 'Use this to plan replenishment before service is affected.',
   },
   {
     id: 'performance',
-    title: 'Brand Partner Performance',
-    purpose: 'Summarizes partner stock, expiry risk, and receiving history.',
-    howItWorks: [
-      'Reads a partner summary view for high-level metrics.',
-      'Loads partner-specific stock and recent GRNs when drilling into a single partner.',
-      'Helps compare who has stock risk, ageing risk, or active inbound activity.',
-    ],
-    useWhen: 'Use for supplier reviews and internal planning with Operations or Finance.',
+    title: 'Partner Performance',
+    purpose: 'Shows how suppliers or brand partners are performing across stock activity.',
+    useWhen: 'Use this during review meetings or supplier follow-up.',
   },
   {
     id: 'count',
     title: 'Physical Count',
-    purpose: 'Reconciles physical warehouse stock against system stock.',
-    howItWorks: [
-      'Opening a session snapshots system stock for every active SKU.',
-      'Counters enter physical quantities and variance notes.',
-      'Submitting the session freezes it for approval.',
-      'Approval posts adjustment movements. Positive variances with no active batch create a reconciliation batch.',
-    ],
-    useWhen: 'Use during cycle counts, full counts, and post-incident reconciliation.',
+    purpose: 'Helps the team compare the real warehouse count with the system and approve any correction properly.',
+    useWhen: 'Use this for routine counts, spot checks, and reconciliation.',
   },
   {
     id: 'reports',
     title: 'Reports & Export',
-    purpose: 'Generates operational and analytical exports.',
-    howItWorks: [
-      'Runs report queries against views and transactional tables.',
-      'Supports stock summary, ABC analysis, ageing, movement, dispatch, GRN, casualty, and variance outputs.',
-      'Exports the currently generated report to CSV.',
-    ],
-    useWhen: 'Use for management reporting, partner communication, and audit support.',
+    purpose: 'Provides reports, exports, and summaries for review, sharing, and documentation.',
+    useWhen: 'Use this after warehouse activity has already been recorded in the app.',
   },
   {
     id: 'products',
     title: 'Products',
-    purpose: 'Maintains the SKU master list.',
-    howItWorks: [
-      'Stores partner ownership, SKU code, name, unit type, reorder threshold, and expiry alert days.',
-      'These settings drive downstream reorder and expiry behavior.',
-    ],
-    useWhen: 'Use when creating or updating a product master record.',
+    purpose: 'Stores the product list and the rules that affect how each item behaves in the warehouse.',
+    useWhen: 'Use this when adding or updating stock items.',
   },
   {
     id: 'partners',
     title: 'Brand Partners',
-    purpose: 'Maintains supplier/partner records.',
-    howItWorks: [
-      'Stores partner identity and contact details.',
-      'Partners connect products, GRNs, and reporting views.',
-    ],
-    useWhen: 'Use when onboarding or maintaining a supplier relationship.',
+    purpose: 'Stores the suppliers or owners connected to the stock you manage.',
+    useWhen: 'Use this when creating or reviewing partner records.',
   },
   {
     id: 'users',
     title: 'Users',
-    purpose: 'Administers system access.',
-    howItWorks: [
-      'Admin users can create or invite users through the Railway backend user administration flow.',
-      'The page also toggles profile active status for existing users.',
-      'User roles determine page access and backend authorization permissions.',
-    ],
-    useWhen: 'Use for onboarding, access control, and offboarding.',
+    purpose: 'Controls who can enter the system and what each person is allowed to do.',
+    useWhen: 'Use this when onboarding staff or adjusting access.',
+  },
+  {
+    id: 'admin-audit',
+    title: 'Admin Audit',
+    purpose: 'Shows sensitive admin activity so leadership can review who changed what and when.',
+    useWhen: 'Use this when reviewing access changes or control activity.',
   },
 ]
 
-export const systemNarrative = [
-  'Every stock item that comes in is saved as a real batch, so the team can always see what arrived, when it arrived, and when it will expire.',
-  'Every stock item that goes out leaves a trail, so nobody has to guess who moved it or when it left the warehouse.',
-  'Alerts for low stock, expiry, damage, and count differences come from the same live data, so teams are looking at one truth.',
-  'Each role only sees the work they should do, which reduces confusion and accidental mistakes.',
-]
-
-export const simpleGoals = [
-  'Make daily work faster than using paper and spreadsheets.',
-  'Stop stock errors before they are saved.',
-  'Show risk early, especially low stock, expiry, and count differences.',
-  'Make it easy for managers to review what happened without asking for separate files.',
-]
-
-export const workflowVisuals = [
-  {
-    title: 'How stock comes in',
-    image: '/workflow-inbound.svg',
-    note: 'The goal is simple: receive once, save once, and let the system update stock, alerts, and the ledger automatically.',
-  },
-  {
-    title: 'How stock goes out',
-    image: '/workflow-outbound.svg',
-    note: 'Dispatch uses the oldest good stock first, then waits for gate confirmation so the warehouse and security stay in sync.',
-  },
-  {
-    title: 'How counting fixes mistakes',
-    image: '/workflow-count.svg',
-    note: 'Counting is meant to catch problems early. Notes and approval make sure changes are explained, not hidden.',
-  },
-]
-
-export const backupRunbook = [
-  'Before risky changes, take a fresh backup of the Railway Postgres database.',
-  'Save the backup in a safe place with the date, time, and owner written clearly.',
-  'Test the backup in a safe environment before trusting it for real recovery.',
-  'If something goes wrong, pause changes, follow the runbook, restore carefully, and confirm the data before opening the system again.',
-]
-
-export const backupChecklist = [
-  'Know who is allowed to take a backup and who is allowed to restore one.',
-  'Write down where the latest safe backup lives.',
-  'Keep a simple recovery checklist in the app so nobody has to guess during an incident.',
-  'Run recovery drills from time to time and record who checked the result.',
-]
-
-export const spreadsheetEliminationMatrix = [
-  {
-    area: 'Goods receiving',
-    spreadsheetRisk: 'Duplicate rows, delayed posting, missing batch and expiry details.',
-    currentState: 'GRN flow with batch, cost, and expiry capture exists.',
-    nextControl: 'Add scan-first receiving, SKU-specific validation rules, and draft receiving queues.',
-    priority: 'P0',
-  },
-  {
-    area: 'Dispatch control',
-    spreadsheetRisk: 'Wrong issue order, missing confirmation trail, silent stock differences.',
-    currentState: 'FIFO dispatch and load confirmation are live.',
-    nextControl: 'Add pick-pack verification, barcode checks, and shortage exception workflows.',
-    priority: 'P0',
-  },
-  {
-    area: 'Expiry management',
-    spreadsheetRisk: 'Near-expiry stock is reviewed too late or missed entirely.',
-    currentState: 'Expiry alerts and threshold rules are live.',
-    nextControl: 'Add FEFO action queues, liquidation/return workflow, and overdue expiry escalation.',
-    priority: 'P0',
-  },
-  {
-    area: 'Physical count',
-    spreadsheetRisk: 'Counts happen offline, then get typed later with missing context.',
-    currentState: 'Count sessions and variance approvals are live.',
-    nextControl: 'Add mobile count mode, blind counts, and zone/bin sequencing.',
-    priority: 'P0',
-  },
-  {
-    area: 'Audit review',
-    spreadsheetRisk: 'Finance and Ops export data to investigate outside the system.',
-    currentState: 'Ledger and reports are live.',
-    nextControl: 'Add SKU/batch timelines, admin audit logs, and period-close dashboards.',
-    priority: 'P0',
-  },
-]
-
-export const gapComparison = [
-  {
-    capability: 'Source of truth',
-    excel: 'Fragmented and editable.',
-    inventoryArk: 'Centralized multi-channel dashboard from public positioning.',
-    dala: 'Warehouse system of record with immutable movement ledger.',
-  },
-  {
-    capability: 'Data validation',
-    excel: 'Weak and optional.',
-    inventoryArk: 'Not clear from public feature summary.',
-    dala: 'Strict SKU, unit, batch, expiry, and role validation.',
-  },
-  {
-    capability: 'FMCG batch control',
-    excel: 'Manual and error-prone.',
-    inventoryArk: 'Not emphasized publicly.',
-    dala: 'Core workflow with FIFO, expiry, casualties, and reconciliation.',
-  },
-  {
-    capability: 'Warehouse execution',
-    excel: 'Often offline-first.',
-    inventoryArk: 'Workflow automation positioned broadly.',
-    dala: 'Point-of-operation receiving, dispatch, count, and exception handling.',
-  },
-  {
-    capability: 'Auditability',
-    excel: 'Poor.',
-    inventoryArk: 'Secure data management mentioned.',
-    dala: 'Trace by SKU, batch, user, and approval.',
-  },
-]
-
-export const roadmapPhases = [
-  {
-    phase: 'Phase 1',
-    title: 'Operational Control Hardening',
-    target: 'Identity, auditability, and exception ownership.',
-    actions: [
-      'Add email delivery for invite and reset flows.',
-      'Add forced password rotation for reset or first-login users.',
-      'Add admin audit log views for user actions and access changes.',
-      'Capture admin action records in the Railway backend.',
-    ],
-  },
-  {
-    phase: 'Phase 2',
-    title: 'Exception-led Warehouse Workflow',
-    target: 'Replace ad hoc spreadsheet follow-up with work queues.',
-    actions: [
-      'Add dashboard inboxes for shortages, expiry, pending approvals, and unresolved variances.',
-      'Add reason-code enforcement and blocked-state handling for critical exceptions.',
-      'Add FEFO and action prompts for expiry-sensitive SKUs.',
-      'Improve count, receiving, and dispatch flows for mobile-floor execution.',
-    ],
-  },
-  {
-    phase: 'Phase 3',
-    title: 'Audit Superiority Over Spreadsheets',
-    target: 'Make investigations easier inside DALA WMS than in Excel.',
-    actions: [
-      'Add SKU timeline and batch timeline drilldowns.',
-      'Add locked period reporting and month-end close views.',
-      'Add PDF board packs with charts, commentary, and loss exposure.',
-      'Add discrepancy ageing and approval SLA reporting.',
-    ],
-  },
-  {
-    phase: 'Phase 4',
-    title: 'Resilience and Runbook',
-    target: 'Operational recovery and infrastructure readiness.',
-    actions: [
-      'Add database backup/restore runbook inside the app manual.',
-      'Add Railway recovery checklist and incident response steps.',
-      'Add recovery drill logging and owner sign-off.',
-      'Keep repo docs and embedded manual aligned in every release.',
-    ],
-  },
-]
-
-export const remainingProductionWork = [
-  'Add email delivery for invite links and reset notifications.',
-  'Add audit log views for admin actions, role changes, resets, and deactivations.',
-  'Add database backup/restore and Railway ops runbook inside the app manual.',
-  'Add SKU and batch timelines for investigations.',
-  'Add mobile-first count and receiving workflows.',
-  'Add dashboard task queues for discrepancies, expiries, and pending approvals.',
-]
+export const maintenanceNote = 'Keep this page practical. When the system changes, update this guide with the new user process, not a technical changelog.'

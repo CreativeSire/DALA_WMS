@@ -49,9 +49,9 @@ export default function LoginPage() {
     <div style={shellStyle}>
       <style>{loginStyles}</style>
 
-      <div style={orbStyle('8%', 'auto', '#2be3b4', '8%')} />
-      <div style={orbStyle('58%', '9%', '#ff8552')} />
-      <div style={orbStyle('auto', '34%', '#6dc6ff', '62%', 'auto', '18%')} />
+      <div style={orbStyle('8%', 'auto', '#d48779', '8%')} />
+      <div style={orbStyle('58%', '9%', '#bc6658')} />
+      <div style={orbStyle('auto', '34%', '#8a5d56', '62%', 'auto', '18%')} />
 
       <div style={frameStyle} className="login-grid">
         <section style={heroPanelStyle}>
@@ -65,9 +65,9 @@ export default function LoginPage() {
           </div>
 
           <div style={heroMetricGridStyle}>
-            <MetricCard label="Backend" value="Railway API" accent="#2be3b4" />
-            <MetricCard label="Database" value="Railway PG" accent="#6dc6ff" />
-            <MetricCard label="Mode" value="Live Review" accent="#ff8552" />
+            <MetricCard label="Backend" value="Railway API" accent="#d48779" />
+            <MetricCard label="Database" value="Railway PG" accent="#c7a484" />
+            <MetricCard label="Mode" value="Live Review" accent="#bc6658" />
           </div>
 
           <div style={heroChecklistStyle}>
@@ -80,7 +80,7 @@ export default function LoginPage() {
 
         <section style={authPanelStyle}>
           <div style={wordmarkStyle}>
-            DALA <span style={{ color: '#2be3b4' }}>WMS</span>
+            DALA <span style={{ color: '#d48779' }}>WMS</span>
           </div>
           <div style={subtitleStyle}>Production access console</div>
 
@@ -137,9 +137,9 @@ export default function LoginPage() {
             {message && (
               <div style={{
                 ...messageStyle,
-                borderColor: isPositive ? 'rgba(43, 227, 180, 0.22)' : 'rgba(255, 133, 82, 0.22)',
-                color: isPositive ? '#8df1cf' : '#ffb191',
-                background: isPositive ? 'rgba(43,227,180,0.09)' : 'rgba(255,133,82,0.09)',
+                borderColor: isPositive ? 'rgba(212, 135, 121, 0.22)' : 'rgba(188, 102, 88, 0.22)',
+                color: isPositive ? '#e7c0b9' : '#f1b2a7',
+                background: isPositive ? 'rgba(212,135,121,0.09)' : 'rgba(188,102,88,0.09)',
               }}>
                 {message}
               </div>
@@ -189,8 +189,8 @@ function MetricCard({ label, value, accent }) {
 function ChecklistItem({ children }) {
   return (
     <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start', marginBottom: 10 }}>
-      <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#2be3b4', marginTop: 6, flexShrink: 0 }} />
-      <span style={{ color: '#b3c6c8', fontSize: 14, lineHeight: 1.5 }}>{children}</span>
+      <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#d48779', marginTop: 6, flexShrink: 0 }} />
+      <span style={{ color: '#cdbfbc', fontSize: 14, lineHeight: 1.5 }}>{children}</span>
     </div>
   )
 }
@@ -216,7 +216,7 @@ const shellStyle = {
   display: 'grid',
   placeItems: 'center',
   padding: '28px 18px',
-  background: '#071012',
+  background: '#171312',
   position: 'relative',
   overflow: 'hidden',
 }
@@ -234,10 +234,10 @@ const frameStyle = {
 const heroPanelStyle = {
   borderRadius: 28,
   padding: '42px 38px',
-  border: '1px solid rgba(126, 155, 160, 0.12)',
+  border: '1px solid rgba(212, 135, 121, 0.12)',
   background: `
-    linear-gradient(180deg, rgba(11,22,24,0.94) 0%, rgba(7,14,16,0.96) 100%),
-    radial-gradient(circle at top right, rgba(43,227,180,0.08), transparent 28%)
+    linear-gradient(180deg, rgba(32,26,24,0.94) 0%, rgba(20,16,15,0.96) 100%),
+    radial-gradient(circle at top right, rgba(212,135,121,0.08), transparent 28%)
   `,
   boxShadow: '0 28px 80px rgba(0,0,0,0.26)',
 }
@@ -247,7 +247,7 @@ const eyebrowStyle = {
   fontSize: 10,
   letterSpacing: '0.18em',
   textTransform: 'uppercase',
-  color: '#6f858d',
+  color: '#918685',
   marginBottom: 18,
 }
 
@@ -257,7 +257,7 @@ const heroTitleStyle = {
   fontSize: 46,
   lineHeight: 1,
   letterSpacing: '-0.05em',
-  color: '#f6fbf9',
+  color: '#f4efee',
   maxWidth: 620,
 }
 
