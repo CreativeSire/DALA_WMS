@@ -42,6 +42,7 @@ export function createApp() {
         partners: '/api/partners',
         products: '/api/products',
         inventory: '/api/inventory',
+        trends: '/api/inventory/trends',
         moveFirst: '/api/inventory/move-first',
         opsSummary: '/api/inventory/ops-summary',
         opsSummaryPreferences: '/api/inventory/ops-summary/preferences',

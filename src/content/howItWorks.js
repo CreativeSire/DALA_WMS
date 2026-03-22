@@ -15,7 +15,7 @@ export const victorJourney = {
   steps: [
     {
       title: '1. Victor receives new goods',
-      detail: 'Victor opens Stock Intake (GRN), selects the partner, adds the products received, enters batch and expiry details where needed, and saves the receipt. Once saved, stock is available in the system.',
+      detail: 'Victor opens Stock Intake (GRN), scans products first where possible, lets the system suggest lines from the delivery note when needed, adds batch and expiry details, and saves the receipt. Once saved, stock is available in the system.',
     },
     {
       title: '2. Victor checks what is available',
@@ -23,7 +23,7 @@ export const victorJourney = {
     },
     {
       title: '3. Victor prepares goods for dispatch',
-      detail: 'Victor opens Dispatch, chooses the products going out, and lets the system allocate from the right batches. This helps the team move older stock first and keeps the audit trail complete.',
+      detail: 'Victor opens Dispatch, scans the products going out, and lets the system allocate from the right batches. This helps the team move older stock first and keeps the audit trail complete.',
     },
     {
       title: '4. Victor manages risk before it becomes a loss',
@@ -225,7 +225,7 @@ export const aiAssistGuide = [
   },
   {
     title: 'Smart alerts',
-    detail: 'The system now points out which batches should move first this week based on expiry risk and age in stock.',
+    detail: 'The system now points out which batches should move first this week based on expiry risk and age in stock. The dashboard also shows trend charts so managers can see if warning levels are rising or falling.',
   },
   {
     title: 'Count review help',
@@ -237,6 +237,10 @@ export const aiAssistGuide = [
   },
   {
     title: 'Document capture',
-    detail: 'Stock Intake can now read pasted delivery note text or a small uploaded document image and suggest the partner and GRN lines before the receiver confirms them. Staff still review and approve before stock is posted.',
+    detail: 'Stock Intake now reads pasted delivery note text or a small uploaded document image and suggests the partner and GRN lines before the receiver confirms them. If an OpenAI key is configured, the system uses full AI document reading. Staff still review and approve before stock is posted.',
+  },
+  {
+    title: 'Scan-first workflow',
+    detail: 'GRN and Dispatch both support scan-first entry. Warehouse staff can use a handheld scanner or supported device camera to pull products into the form without typing the SKU manually.',
   },
 ]

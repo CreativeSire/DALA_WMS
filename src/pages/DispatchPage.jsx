@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '../App'
 import { Card, Button, Input, Select, Modal, Table, PageHeader, Alert, Badge, SectionCard, StatStrip, TextArea } from '../components/ui'
+import ScanAssistCard from '../components/ScanAssistCard'
 import { allocateFIFOFromBatches, getAvailableQuantity } from '../lib/inventory'
 import { useIsCompact } from '../lib/useIsCompact'
 
@@ -226,6 +227,41 @@ export default function DispatchPage() {
   }
 
   const canConfirm = ['admin', 'security', 'operations'].includes(profile?.role)
+  function resolveProductFromScan(code) {
+    const normalized = code.trim().toLowerCase()
+    return products.find((product) =>
+      product.sku_code?.toLowerCase() === normalized
+      || product.barcode_value?.toLowerCase() === normalized
+    )
+  }
+
+  async function handleScannedProduct(code) {
+    const product = resolveProductFromScan(code)
+    if (!product) {
+      return { ok: false, message: 'No SKU matched that scan.' }
+    }
+
+    await fetchAvailableBatches(product.id)
+    setLines((current) => {
+      const existingIndex = current.findIndex((line) => line.productId === product.id)
+      if (existingIndex >= 0) {
+        return current.map((line, index) => index === existingIndex
+          ? { ...line, quantity: String((Number(line.quantity || 0) + 1) || 1) }
+          : line)
+      }
+
+      const emptyIndex = current.findIndex((line) => !line.productId)
+      if (emptyIndex >= 0) {
+        return current.map((line, index) => index === emptyIndex
+          ? { ...line, productId: product.id, quantity: line.quantity || '1' }
+          : line)
+      }
+
+      return [...current, { ...newLine(), productId: product.id, quantity: '1' }]
+    })
+
+    return { ok: true, message: `${product.name} added from scan.` }
+  }
 
   const statusColor = { pending: '#ffb547', confirmed: '#00e5a0', cancelled: '#ff6b35' }
 
@@ -307,6 +343,15 @@ export default function DispatchPage() {
           <form onSubmit={handleSubmit}>
             <Input label="Retailer Name" value={retailerName} onChange={e => setRetailerName(e.target.value)} required placeholder="e.g. ShopRite Ikeja" />
             <Input label="Retailer Address" value={retailerAddress} onChange={e => setRetailerAddress(e.target.value)} placeholder="Optional delivery address" />
+
+            <div style={{ marginBottom: 16 }}>
+              <ScanAssistCard
+                title="Scan-first dispatch"
+                copy="Scan products directly into the dispatch note. This is faster on the floor and reduces the chance of picking the wrong SKU."
+                placeholder="Scan SKU or barcode and press Enter"
+                onResolve={handleScannedProduct}
+              />
+            </div>
 
             <div style={{ borderTop: '1px solid #1a2224', paddingTop: 20, marginBottom: 16 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>

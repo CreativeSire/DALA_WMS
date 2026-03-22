@@ -65,6 +65,7 @@ async function bootstrap() {
       id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
       brand_partner_id UUID NOT NULL REFERENCES brand_partners(id) ON DELETE RESTRICT,
       sku_code TEXT NOT NULL UNIQUE,
+      barcode_value TEXT,
       name TEXT NOT NULL,
       category TEXT,
       sku_class TEXT NOT NULL DEFAULT 'regular' ${skuClassCheck},
@@ -79,6 +80,7 @@ async function bootstrap() {
   `)
 
   await query(`ALTER TABLE products ADD COLUMN IF NOT EXISTS sku_class TEXT`)
+  await query(`ALTER TABLE products ADD COLUMN IF NOT EXISTS barcode_value TEXT`)
   await query(`UPDATE products SET sku_class = 'regular' WHERE sku_class IS NULL OR sku_class = ''`)
   await query(`ALTER TABLE products ALTER COLUMN sku_class SET DEFAULT 'regular'`)
   await query(`ALTER TABLE products ALTER COLUMN sku_class SET NOT NULL`)

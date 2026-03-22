@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '../App'
 import { Card, Button, Input, Select, Modal, Table, PageHeader, Alert, Badge, SectionCard, StatStrip, TextArea } from '../components/ui'
+import ScanAssistCard from '../components/ScanAssistCard'
 import { useIsCompact } from '../lib/useIsCompact'
 
 export default function GRNPage() {
@@ -214,6 +215,42 @@ export default function GRNPage() {
 
   const partnerProducts = products.filter(p => p.brand_partner_id === partnerId)
 
+  function resolveProductFromScan(code) {
+    const normalized = code.trim().toLowerCase()
+    const source = partnerId ? partnerProducts : products
+    return source.find((product) =>
+      product.sku_code?.toLowerCase() === normalized
+      || product.barcode_value?.toLowerCase() === normalized
+    )
+  }
+
+  async function handleScannedProduct(code) {
+    const product = resolveProductFromScan(code)
+    if (!product) {
+      return { ok: false, message: 'No SKU matched that scan.' }
+    }
+
+    setLines((current) => {
+      const existingIndex = current.findIndex((line) => line.productId === product.id)
+      if (existingIndex >= 0) {
+        return current.map((line, index) => index === existingIndex
+          ? { ...line, quantity: String((Number(line.quantity || 0) + 1) || 1) }
+          : line)
+      }
+
+      const emptyIndex = current.findIndex((line) => !line.productId)
+      if (emptyIndex >= 0) {
+        return current.map((line, index) => index === emptyIndex
+          ? { ...line, productId: product.id, quantity: line.quantity || '1' }
+          : line)
+      }
+
+      return [...current, { ...newLine(), productId: product.id, quantity: '1' }]
+    })
+
+    return { ok: true, message: `${product.name} added from scan.` }
+  }
+
   return (
     <div>
       <PageHeader
@@ -282,6 +319,15 @@ export default function GRNPage() {
             </Select>
 
             <Input label="Delivery Note Reference" value={deliveryRef} onChange={e => setDeliveryRef(e.target.value)} placeholder="e.g. DN-20240301-001" />
+
+            <div style={{ marginBottom: 16 }}>
+              <ScanAssistCard
+                title="Scan-first intake"
+                copy="Use a handheld scanner or the device camera to add products by barcode before adjusting quantity, batch, and expiry."
+                placeholder="Scan SKU or barcode and press Enter"
+                onResolve={handleScannedProduct}
+              />
+            </div>
 
             {authMode === 'api' && (
               <div style={{ borderTop: '1px solid #1a2224', paddingTop: 18, marginBottom: 16 }}>

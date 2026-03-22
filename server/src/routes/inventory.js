@@ -10,6 +10,7 @@ import {
   getMovements,
   getMoveFirstBatchAlerts,
   getOpsSummary,
+  getAiTrendData,
   getReorderAlerts,
   listAvailableBatches,
   refreshBatchStatuses,
@@ -38,6 +39,15 @@ inventoryRouter.get(
   asyncHandler(async (_req, res) => {
     const dashboard = await getDashboardData()
     res.json(dashboard)
+  }),
+)
+
+inventoryRouter.get(
+  '/trends',
+  asyncHandler(async (req, res) => {
+    const days = req.query.days ? Number(req.query.days) : 14
+    const trends = await getAiTrendData({ days })
+    res.json(trends)
   }),
 )
 

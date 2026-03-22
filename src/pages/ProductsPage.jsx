@@ -14,7 +14,7 @@ export function ProductsPage() {
 
   const [form, setForm] = useState(emptyForm())
   function emptyForm() {
-    return { brand_partner_id: '', sku_code: '', name: '', category: '', sku_class: 'regular', unit_type: 'carton', allows_fractions: true, reorder_threshold: '', expiry_alert_days: '30' }
+    return { brand_partner_id: '', sku_code: '', barcode_value: '', name: '', category: '', sku_class: 'regular', unit_type: 'carton', allows_fractions: true, reorder_threshold: '', expiry_alert_days: '30' }
   }
 
   useEffect(() => { loadData() }, [])
@@ -64,7 +64,7 @@ export function ProductsPage() {
 
   function openEdit(p) {
     setEditing(p)
-    setForm({ brand_partner_id: p.brand_partner_id, sku_code: p.sku_code, name: p.name, category: p.category || '', sku_class: p.sku_class || 'regular', unit_type: p.unit_type, allows_fractions: p.allows_fractions, reorder_threshold: p.reorder_threshold || '', expiry_alert_days: p.expiry_alert_days || 30 })
+    setForm({ brand_partner_id: p.brand_partner_id, sku_code: p.sku_code, barcode_value: p.barcode_value || '', name: p.name, category: p.category || '', sku_class: p.sku_class || 'regular', unit_type: p.unit_type, allows_fractions: p.allows_fractions, reorder_threshold: p.reorder_threshold || '', expiry_alert_days: p.expiry_alert_days || 30 })
     setShowModal(true)
   }
 
@@ -120,9 +120,10 @@ export function ProductsPage() {
 
       <Card style={{ padding: 0, overflow: 'hidden' }}>
         <Table
-          headers={['SKU', 'Product Name', 'Brand Partner', 'Class', 'Category', 'Unit', 'Reorder At', 'Expiry Alert']}
+          headers={['SKU', 'Barcode', 'Product Name', 'Brand Partner', 'Class', 'Category', 'Unit', 'Reorder At', 'Expiry Alert']}
           rows={products.map(p => [
             <span style={{ fontFamily: 'DM Mono, monospace', fontSize: 12, color: '#4a6068' }}>{p.sku_code}</span>,
+            <span style={{ fontFamily: 'DM Mono, monospace', fontSize: 12, color: '#8c807f' }}>{p.barcode_value || '—'}</span>,
             <button onClick={() => openEdit(p)} style={{ background: 'none', border: 'none', color: '#00e5a0', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif', fontWeight: 500, fontSize: 13 }}>{p.name}</button>,
             p.brand_partners?.name,
             <Badge color="#d48779">{(p.sku_class || 'regular').replace('_', ' ')}</Badge>,
@@ -144,6 +145,7 @@ export function ProductsPage() {
             </Select>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
               <Input label="SKU Code" value={form.sku_code} onChange={e => setForm(f => ({ ...f, sku_code: e.target.value }))} required placeholder="e.g. MILO-400G" />
+              <Input label="Barcode" value={form.barcode_value} onChange={e => setForm(f => ({ ...f, barcode_value: e.target.value }))} placeholder="e.g. 6151100123411" />
               <Input label="Product Name" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} required placeholder="e.g. Milo 400g" />
               <Input label="Category" value={form.category} onChange={e => setForm(f => ({ ...f, category: e.target.value }))} placeholder="e.g. Beverages" />
               <Select label="SKU Class" value={form.sku_class} onChange={e => setForm(f => ({ ...f, sku_class: e.target.value }))}>

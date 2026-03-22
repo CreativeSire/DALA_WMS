@@ -4,6 +4,7 @@ const skuClassCheck = `CHECK (sku_class IN ('fast_mover','regular','controlled',
 const opsSummaryChannelCheck = `CHECK (channel IN ('in_app','email'))`
 
 export async function ensureRuntimeSchema() {
+  await query(`ALTER TABLE products ADD COLUMN IF NOT EXISTS barcode_value TEXT`)
   await query(`ALTER TABLE products ADD COLUMN IF NOT EXISTS sku_class TEXT`)
   await query(`UPDATE products SET sku_class = 'regular' WHERE sku_class IS NULL OR sku_class = ''`)
   await query(`ALTER TABLE products ALTER COLUMN sku_class SET DEFAULT 'regular'`)

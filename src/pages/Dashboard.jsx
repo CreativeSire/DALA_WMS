@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '../App'
 import { Badge, Button, Card, EmptyState, Input, PageHeader, SectionCard, StatStrip } from '../components/ui'
+import MiniTrendChart from '../components/MiniTrendChart'
 import { useIsCompact } from '../lib/useIsCompact'
 
 export default function Dashboard({ setPage }) {
@@ -19,6 +20,7 @@ export default function Dashboard({ setPage }) {
     moveFirstBatches: [],
   })
   const [opsSummary, setOpsSummary] = useState(null)
+  const [trends, setTrends] = useState({ series: [] })
   const [summaryState, setSummaryState] = useState({ preferences: null, deliveries: [] })
   const [savingSummaryPrefs, setSavingSummaryPrefs] = useState(false)
   const [sendingSummary, setSendingSummary] = useState(false)
@@ -29,14 +31,16 @@ export default function Dashboard({ setPage }) {
   async function load() {
     setLoading(true)
     if (authMode === 'api') {
-      const [dashboard, summary, deliveryState] = await Promise.all([
+      const [dashboard, summary, deliveryState, trendData] = await Promise.all([
         api.get('/api/inventory/dashboard'),
         api.get('/api/inventory/ops-summary'),
         api.get('/api/inventory/ops-summary/preferences'),
+        api.get('/api/inventory/trends?days=14'),
       ])
       setData(dashboard)
       setOpsSummary(summary)
       setSummaryState(deliveryState)
+      setTrends(trendData)
       setLoading(false)
       return
     }
@@ -68,6 +72,7 @@ export default function Dashboard({ setPage }) {
       moveFirstBatches: [],
     })
     setOpsSummary(null)
+    setTrends({ series: [] })
     setLoading(false)
   }
 
@@ -256,6 +261,25 @@ export default function Dashboard({ setPage }) {
             </div>
           </div>
         </SectionCard>
+      )}
+
+      {authMode === 'api' && trends.series?.length > 0 && (
+        <div style={{ display: 'grid', gridTemplateColumns: isCompact ? '1fr' : '1fr 1fr', gap: 16, marginBottom: 18 }}>
+          <MiniTrendChart
+            title="Dispatch anomaly trend"
+            subtitle="How often dispatches crossed the warning line in the last 14 days."
+            series={trends.series}
+            color="#d48779"
+            valueKey="anomalyWarnings"
+          />
+          <MiniTrendChart
+            title="Count risk trend"
+            subtitle="Variance lines found in recent count sessions."
+            series={trends.series}
+            color="#6dc6ff"
+            valueKey="varianceLines"
+          />
+        </div>
       )}
 
       <div style={{ display: 'grid', gridTemplateColumns: isCompact ? '1fr' : 'repeat(3, minmax(0, 1fr))', gap: 16 }}>

@@ -338,6 +338,88 @@ export async function getOpsSummary() {
   })
 }
 
+export async function getAiTrendData({ days = 14 } = {}) {
+  const anomalyRows = (
+    await query(
+      `
+        SELECT
+          dn.created_at::date AS day,
+          di.product_id,
+          di.quantity_dispatched AS quantity
+        FROM dispatch_items di
+        JOIN dispatch_notes dn ON dn.id = di.dispatch_id
+        WHERE dn.created_at >= CURRENT_DATE - ($1::int - 1)
+        ORDER BY dn.created_at ASC
+      `,
+      [days],
+    )
+  ).rows
+
+  const productIds = [...new Set(anomalyRows.map((row) => row.product_id))]
+  const stats = await getDispatchProductStats(productIds, { days: 120 })
+  const warnings = scoreDispatchAnomalies(
+    anomalyRows.map((row) => ({
+      productId: row.product_id,
+      quantity: Number(row.quantity),
+      unitFraction: 1,
+      day: row.day,
+    })),
+    stats,
+  )
+
+  const anomalyByDay = new Map()
+  for (const warning of warnings) {
+    const sourceRow = anomalyRows.find((row) => row.product_id === warning.productId && Number(row.quantity) === warning.requestedQty)
+    const day = sourceRow?.day ? new Date(sourceRow.day).toISOString().slice(0, 10) : null
+    if (!day) continue
+    anomalyByDay.set(day, (anomalyByDay.get(day) || 0) + 1)
+  }
+
+  const countRows = (
+    await query(
+      `
+        SELECT
+          cs.opened_at::date AS day,
+          COUNT(*) FILTER (WHERE cl.variance IS NOT NULL AND cl.variance <> 0)::int AS variance_lines,
+          COUNT(DISTINCT cs.id)::int AS session_count
+        FROM count_sessions cs
+        LEFT JOIN count_lines cl ON cl.session_id = cs.id
+        WHERE cs.opened_at >= CURRENT_DATE - ($1::int - 1)
+        GROUP BY cs.opened_at::date
+        ORDER BY cs.opened_at::date ASC
+      `,
+      [days],
+    )
+  ).rows
+
+  const countByDay = new Map(countRows.map((row) => [
+    new Date(row.day).toISOString().slice(0, 10),
+    {
+      varianceLines: Number(row.variance_lines || 0),
+      sessionCount: Number(row.session_count || 0),
+    },
+  ]))
+
+  const series = []
+  for (let offset = days - 1; offset >= 0; offset -= 1) {
+    const date = new Date()
+    date.setUTCDate(date.getUTCDate() - offset)
+    const dayKey = date.toISOString().slice(0, 10)
+    const countItem = countByDay.get(dayKey) || { varianceLines: 0, sessionCount: 0 }
+    series.push({
+      day: dayKey,
+      anomalyWarnings: anomalyByDay.get(dayKey) || 0,
+      varianceLines: countItem.varianceLines,
+      countSessions: countItem.sessionCount,
+    })
+  }
+
+  return {
+    days,
+    series,
+  }
+}
+
 export async function getOpsSummaryPreferences(userId) {
   const { rows } = await query(
     `

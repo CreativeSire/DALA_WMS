@@ -9,6 +9,7 @@ const skuClassEnum = z.enum(['fast_mover', 'regular', 'controlled', 'seasonal'])
 const productSchema = z.object({
   brand_partner_id: z.string().uuid(),
   sku_code: z.string().min(2),
+  barcode_value: z.string().optional().default(''),
   name: z.string().min(2),
   category: z.string().optional().default(''),
   sku_class: skuClassEnum.default('regular'),

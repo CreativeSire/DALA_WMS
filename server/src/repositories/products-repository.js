@@ -6,6 +6,7 @@ export async function listProducts() {
       p.id,
       p.brand_partner_id,
       p.sku_code,
+      p.barcode_value,
       p.name,
       p.category,
       p.sku_class,
@@ -30,6 +31,7 @@ export async function createProduct(input) {
       INSERT INTO products (
         brand_partner_id,
         sku_code,
+        barcode_value,
         name,
         category,
         sku_class,
@@ -39,12 +41,13 @@ export async function createProduct(input) {
         expiry_alert_days,
         is_active
       )
-      VALUES ($1, UPPER($2), $3, NULLIF($4, ''), $5, $6, $7, $8, $9, COALESCE($10, true))
+      VALUES ($1, UPPER($2), NULLIF($3, ''), $4, NULLIF($5, ''), $6, $7, $8, $9, $10, COALESCE($11, true))
       RETURNING *
     `,
     [
       input.brand_partner_id,
       input.sku_code,
+      input.barcode_value,
       input.name,
       input.category,
       input.sku_class,
@@ -64,14 +67,15 @@ export async function updateProduct(id, input) {
       UPDATE products
       SET brand_partner_id = $2,
           sku_code = UPPER($3),
-          name = $4,
-          category = NULLIF($5, ''),
-          sku_class = $6,
-          unit_type = $7,
-          allows_fractions = $8,
-          reorder_threshold = $9,
-          expiry_alert_days = $10,
-          is_active = COALESCE($11, is_active),
+          barcode_value = NULLIF($4, ''),
+          name = $5,
+          category = NULLIF($6, ''),
+          sku_class = $7,
+          unit_type = $8,
+          allows_fractions = $9,
+          reorder_threshold = $10,
+          expiry_alert_days = $11,
+          is_active = COALESCE($12, is_active),
           updated_at = NOW()
       WHERE id = $1
       RETURNING *
@@ -80,6 +84,7 @@ export async function updateProduct(id, input) {
       id,
       input.brand_partner_id,
       input.sku_code,
+      input.barcode_value,
       input.name,
       input.category,
       input.sku_class,
