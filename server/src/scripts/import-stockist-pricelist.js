@@ -119,8 +119,8 @@ async function findProduct(itemName, skuCode) {
     `
       SELECT id, sku_code, name
       FROM products
-      WHERE UPPER(sku_code) = UPPER($1)
-         OR LOWER(name) = LOWER($2)
+      WHERE LOWER(name) = LOWER($2)
+         OR UPPER(sku_code) = UPPER($1)
       LIMIT 1
     `,
     [skuCode, itemName],
@@ -158,11 +158,15 @@ function buildAliases(itemName) {
 
 function deriveSkuCode(itemName) {
   const cleanName = clean(itemName).toUpperCase()
-  const prefixMatch = cleanName.match(/^([A-Z0-9]+-\s*[A-Z0-9]+)/)
-  if (prefixMatch) {
-    return prefixMatch[1].replace(/\s+/g, '')
+  const normalized = cleanName
+    .replace(/[()]/g, ' ')
+    .replace(/[^A-Z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .replace(/-+/g, '-')
+  if (normalized) {
+    return normalized.slice(0, 48)
   }
-  return cleanName.replace(/[^A-Z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 48)
+  return 'IMPORTED-SKU'
 }
 
 function clean(value) {
