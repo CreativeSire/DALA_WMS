@@ -3,6 +3,8 @@ import { useAuth } from '../App'
 import { Card, PageHeader, Table, Badge, Button, Alert, Modal, Input, SectionCard, StatStrip, SegmentedControl, TextArea } from '../components/ui'
 import { planCountAdjustment } from '../lib/inventory'
 import { useIsCompact } from '../lib/useIsCompact'
+import ScanAssistCard from '../components/ScanAssistCard'
+import { describePackRule, getUnitsPerPack } from '../lib/units'
 
 const STATUS_COLOR = { open:'#4fc3f7', submitted:'#ffb547', approved:'#00e5a0', closed:'#4a6068' }
 
@@ -20,6 +22,7 @@ export default function PhysicalCountPage() {
   const [search, setSearch] = useState('')
   const [filterVariance, setFilterVariance] = useState(false)
   const [varianceInsights, setVarianceInsights] = useState([])
+  const [scanUnitMode, setScanUnitMode] = useState('alt')
 
   useEffect(() => { loadSessions() }, [])
 
@@ -288,6 +291,30 @@ export default function PhysicalCountPage() {
   const totalVariance = countLines.filter(l => l.variance !== null && l.variance !== 0).length
   const countedLines = countLines.filter(l => l.counted_quantity !== null).length
 
+  function resolveCountLineFromScan(code) {
+    const normalized = code.trim().toLowerCase()
+    return countLines.find((line) =>
+      line.sku_code?.toLowerCase() === normalized
+      || line.barcode_value?.toLowerCase() === normalized
+      || line.internal_barcode_value?.toLowerCase() === normalized
+      || (line.product_aliases || []).some((alias) => alias.toLowerCase() === normalized)
+      || line.product_name?.toLowerCase() === normalized
+    )
+  }
+
+  async function handleScannedCountProduct(code) {
+    const line = resolveCountLineFromScan(code)
+    if (!line) {
+      return { ok: false, message: 'No count line matched that scan.' }
+    }
+
+    const unitsPerPack = getUnitsPerPack(line)
+    const increment = scanUnitMode === 'base' || !line.alt_uom_label || unitsPerPack <= 1 ? 1 : 1 / unitsPerPack
+    const nextQuantity = Number((Number(line.counted_quantity ?? 0) + increment).toFixed(4))
+    await saveCount(line.line_id, String(nextQuantity))
+    return { ok: true, message: `${line.product_name} counted. New qty: ${nextQuantity}` }
+  }
+
   // ── Active session view ─────────────────────────────────────
   if (activeSession) {
     return (
@@ -343,6 +370,26 @@ export default function PhysicalCountPage() {
             { label:'With Variance', value: totalVariance, accent: totalVariance > 0 ? '#ffb547' : '#4a6068' },
           ]} />
         </SectionCard>
+
+        {activeSession.status === 'open' && canCount && (
+          <SectionCard
+            eyebrow="Scan-first Count"
+            title="Count by scan when labels are on the floor"
+            subtitle="Each successful scan adds either one full pack or one loose unit, depending on the count mode below. DALA scan codes, supplier barcodes, SKUs, and saved aliases all work."
+            style={{ marginBottom: 16 }}
+          >
+            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 12 }}>
+              <Button type="button" size="sm" variant={scanUnitMode === 'alt' ? 'primary' : 'ghost'} onClick={() => setScanUnitMode('alt')}>Scan loose units</Button>
+              <Button type="button" size="sm" variant={scanUnitMode === 'base' ? 'primary' : 'ghost'} onClick={() => setScanUnitMode('base')}>Scan full packs</Button>
+            </div>
+            <ScanAssistCard
+              title="Scan into count"
+              copy={`Use this for repeated counting after products or shelf locations have been labeled. Current mode: ${scanUnitMode === 'base' ? 'full pack' : 'loose unit'}.`}
+              placeholder="Scan DALA code, supplier barcode, or SKU"
+              onResolve={handleScannedCountProduct}
+            />
+          </SectionCard>
+        )}
 
         {varianceInsights.length > 0 && (
           <SectionCard
@@ -403,6 +450,7 @@ export default function PhysicalCountPage() {
                     <div>
                       <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 18, color: '#f4efee' }}>{line.product_name}</div>
                       <div style={{ fontSize: 12, color: '#a89997', marginTop: 4 }}>{line.brand_partner}</div>
+                      <div style={{ fontSize: 12, color: '#8c807f', marginTop: 4 }}>{describePackRule(line)}</div>
                     </div>
                     <Badge color={hasVariance ? (isPositive ? '#d48779' : '#bc6658') : '#8d7f7d'}>{line.sku_code}</Badge>
                   </div>
@@ -473,6 +521,7 @@ export default function PhysicalCountPage() {
                       <td style={{ padding:'10px 14px', fontFamily:'DM Mono, monospace', fontSize:11, color:'#4a6068' }}>{line.sku_code}</td>
                       <td style={{ padding:'10px 14px' }}>
                         <div style={{ color:'#e0e8ea', fontWeight:500 }}>{line.product_name}</div>
+                        <div style={{ fontSize:11, color:'#8c807f', marginTop:4 }}>{describePackRule(line)}</div>
                       </td>
                       <td style={{ padding:'10px 14px', color:'#a8bcc0', fontSize:12 }}>{line.brand_partner}</td>
                       <td style={{ padding:'10px 14px', fontFamily:'DM Mono, monospace', fontWeight:600, color:'#4fc3f7' }}>

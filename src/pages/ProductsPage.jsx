@@ -14,7 +14,29 @@ export function ProductsPage() {
 
   const [form, setForm] = useState(emptyForm())
   function emptyForm() {
-    return { brand_partner_id: '', sku_code: '', barcode_value: '', name: '', category: '', sku_class: 'regular', unit_type: 'carton', allows_fractions: true, reorder_threshold: '', expiry_alert_days: '30' }
+    return {
+      brand_partner_id: '',
+      sku_code: '',
+      barcode_value: '',
+      internal_barcode_value: '',
+      product_aliases: '',
+      base_uom_label: 'ctn',
+      alt_uom_label: '',
+      units_per_pack: '1',
+      is_vatable: false,
+      name: '',
+      category: '',
+      sku_class: 'regular',
+      unit_type: 'carton',
+      allows_fractions: true,
+      reorder_threshold: '',
+      expiry_alert_days: '30',
+    }
+  }
+
+  function buildInternalCode(skuCode) {
+    const cleaned = String(skuCode || '').trim().toUpperCase().replace(/[^A-Z0-9]+/g, '-').replace(/^-+|-+$/g, '')
+    return cleaned ? `DALA-${cleaned}` : ''
   }
 
   useEffect(() => { loadData() }, [])
@@ -42,6 +64,9 @@ export function ProductsPage() {
     e.preventDefault()
     const payload = {
       ...form,
+      internal_barcode_value: form.internal_barcode_value || buildInternalCode(form.sku_code),
+      product_aliases: form.product_aliases.split(',').map((item) => item.trim()).filter(Boolean),
+      units_per_pack: parseFloat(form.units_per_pack) || 1,
       reorder_threshold: parseFloat(form.reorder_threshold) || 0,
       expiry_alert_days: parseInt(form.expiry_alert_days) || 30,
     }
@@ -64,7 +89,24 @@ export function ProductsPage() {
 
   function openEdit(p) {
     setEditing(p)
-    setForm({ brand_partner_id: p.brand_partner_id, sku_code: p.sku_code, barcode_value: p.barcode_value || '', name: p.name, category: p.category || '', sku_class: p.sku_class || 'regular', unit_type: p.unit_type, allows_fractions: p.allows_fractions, reorder_threshold: p.reorder_threshold || '', expiry_alert_days: p.expiry_alert_days || 30 })
+    setForm({
+      brand_partner_id: p.brand_partner_id,
+      sku_code: p.sku_code,
+      barcode_value: p.barcode_value || '',
+      internal_barcode_value: p.internal_barcode_value || buildInternalCode(p.sku_code),
+      product_aliases: (p.product_aliases || []).join(', '),
+      base_uom_label: p.base_uom_label || 'ctn',
+      alt_uom_label: p.alt_uom_label || '',
+      units_per_pack: p.units_per_pack || '1',
+      is_vatable: Boolean(p.is_vatable),
+      name: p.name,
+      category: p.category || '',
+      sku_class: p.sku_class || 'regular',
+      unit_type: p.unit_type,
+      allows_fractions: p.allows_fractions,
+      reorder_threshold: p.reorder_threshold || '',
+      expiry_alert_days: p.expiry_alert_days || 30,
+    })
     setShowModal(true)
   }
 
@@ -120,14 +162,17 @@ export function ProductsPage() {
 
       <Card style={{ padding: 0, overflow: 'hidden' }}>
         <Table
-          headers={['SKU', 'Barcode', 'Product Name', 'Brand Partner', 'Class', 'Category', 'Unit', 'Reorder At', 'Expiry Alert']}
+          headers={['SKU', 'DALA Scan Code', 'Supplier Barcode', 'Product Name', 'Brand Partner', 'Pack Rule', 'Class', 'Unit', 'Reorder At', 'Expiry Alert']}
           rows={products.map(p => [
             <span style={{ fontFamily: 'DM Mono, monospace', fontSize: 12, color: '#4a6068' }}>{p.sku_code}</span>,
+            <span style={{ fontFamily: 'DM Mono, monospace', fontSize: 12, color: '#d48779' }}>{p.internal_barcode_value || '—'}</span>,
             <span style={{ fontFamily: 'DM Mono, monospace', fontSize: 12, color: '#8c807f' }}>{p.barcode_value || '—'}</span>,
             <button onClick={() => openEdit(p)} style={{ background: 'none', border: 'none', color: '#00e5a0', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif', fontWeight: 500, fontSize: 13 }}>{p.name}</button>,
             p.brand_partners?.name,
+            <span style={{ fontFamily: 'DM Mono, monospace', fontSize: 12, color: '#b8acab' }}>
+              {p.base_uom_label || 'ctn'}{p.alt_uom_label ? ` → ${p.alt_uom_label} x ${p.units_per_pack || 1}` : ''}
+            </span>,
             <Badge color="#d48779">{(p.sku_class || 'regular').replace('_', ' ')}</Badge>,
-            p.category || '—',
             p.unit_type,
             p.reorder_threshold > 0 ? <Badge color="#ffb547">{p.reorder_threshold}</Badge> : '—',
             <span style={{ fontFamily: 'DM Mono, monospace', fontSize: 12 }}>{p.expiry_alert_days}d</span>,
@@ -144,10 +189,21 @@ export function ProductsPage() {
               {partners.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
             </Select>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-              <Input label="SKU Code" value={form.sku_code} onChange={e => setForm(f => ({ ...f, sku_code: e.target.value }))} required placeholder="e.g. MILO-400G" />
+              <Input label="SKU Code" value={form.sku_code} onChange={e => setForm(f => ({ ...f, sku_code: e.target.value, internal_barcode_value: f.internal_barcode_value || buildInternalCode(e.target.value) }))} required placeholder="e.g. MILO-400G" />
+              <div>
+                <Input label="DALA Scan Code" value={form.internal_barcode_value} onChange={e => setForm(f => ({ ...f, internal_barcode_value: e.target.value }))} placeholder="Generated if left blank" />
+                <div style={{ marginTop: 8 }}>
+                  <Button type="button" size="sm" variant="ghost" onClick={() => setForm(f => ({ ...f, internal_barcode_value: buildInternalCode(f.sku_code) }))}>
+                    Generate from SKU
+                  </Button>
+                </div>
+              </div>
               <Input label="Barcode" value={form.barcode_value} onChange={e => setForm(f => ({ ...f, barcode_value: e.target.value }))} placeholder="e.g. 6151100123411" />
               <Input label="Product Name" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} required placeholder="e.g. Milo 400g" />
               <Input label="Category" value={form.category} onChange={e => setForm(f => ({ ...f, category: e.target.value }))} placeholder="e.g. Beverages" />
+              <Input label="Base UOM" value={form.base_uom_label} onChange={e => setForm(f => ({ ...f, base_uom_label: e.target.value }))} placeholder="e.g. ctn" />
+              <Input label="Alt UOM" value={form.alt_uom_label} onChange={e => setForm(f => ({ ...f, alt_uom_label: e.target.value }))} placeholder="e.g. unt / btt / pcs" />
+              <Input label="Units per pack" value={form.units_per_pack} onChange={e => setForm(f => ({ ...f, units_per_pack: e.target.value }))} type="number" min="1" step="1" placeholder="e.g. 12" />
               <Select label="SKU Class" value={form.sku_class} onChange={e => setForm(f => ({ ...f, sku_class: e.target.value }))}>
                 <option value="fast_mover">Fast mover</option>
                 <option value="regular">Regular</option>
@@ -163,6 +219,11 @@ export function ProductsPage() {
               <Input label="Reorder Threshold" value={form.reorder_threshold} onChange={e => setForm(f => ({ ...f, reorder_threshold: e.target.value }))} type="number" min="0" step="0.01" placeholder="Min stock before alert" />
               <Input label="Expiry Alert (days)" value={form.expiry_alert_days} onChange={e => setForm(f => ({ ...f, expiry_alert_days: e.target.value }))} type="number" min="1" placeholder="30" />
             </div>
+            <Input label="Document aliases" value={form.product_aliases} onChange={e => setForm(f => ({ ...f, product_aliases: e.target.value }))} placeholder="Comma-separated names used on invoices, delivery notes, or count sheets" />
+            <label style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 10, color: '#d0c3c0', fontSize: 13 }}>
+              <input type="checkbox" checked={form.is_vatable} onChange={e => setForm(f => ({ ...f, is_vatable: e.target.checked }))} />
+              Product is vatable
+            </label>
             <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end', marginTop: 8 }}>
               <Button type="button" variant="ghost" onClick={() => { setShowModal(false); setEditing(null); setForm(emptyForm()) }}>Cancel</Button>
               <Button type="submit">{editing ? 'Save Changes →' : 'Add Product →'}</Button>

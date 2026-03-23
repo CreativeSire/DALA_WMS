@@ -8,6 +8,13 @@ function normalize(text) {
   return cleanText(text).toLowerCase()
 }
 
+function matchesAlias(documentText, aliases) {
+  return (aliases || []).find((alias) => {
+    const value = normalize(alias)
+    return value && documentText.includes(value)
+  })
+}
+
 function findQuantityNearMatch(documentText, anchor) {
   const escaped = anchor.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
   const patterns = [
@@ -34,18 +41,40 @@ function buildFallbackSuggestions({ documentText, products, partners }) {
     .map((product) => {
       const sku = normalize(product.sku_code)
       const name = normalize(product.name)
+      const barcode = normalize(product.barcode_value)
+      const internalCode = normalize(product.internal_barcode_value)
+      const aliasHit = matchesAlias(normalizedDocument, product.product_aliases)
       const skuHit = sku && normalizedDocument.includes(sku)
       const nameHit = name && normalizedDocument.includes(name)
-      if (!skuHit && !nameHit) return null
+      const barcodeHit = barcode && normalizedDocument.includes(barcode)
+      const internalCodeHit = internalCode && normalizedDocument.includes(internalCode)
+      if (!skuHit && !nameHit && !barcodeHit && !internalCodeHit && !aliasHit) return null
 
-      const quantity = findQuantityNearMatch(documentText, skuHit ? product.sku_code : product.name) || 1
+      const anchor =
+        (skuHit && product.sku_code)
+        || (internalCodeHit && product.internal_barcode_value)
+        || (barcodeHit && product.barcode_value)
+        || aliasHit
+        || product.name
+      const quantity = findQuantityNearMatch(documentText, anchor) || 1
+      const confidence =
+        skuHit || internalCodeHit ? 0.86
+        : barcodeHit ? 0.82
+        : aliasHit ? 0.76
+        : 0.72
+      const reason =
+        skuHit ? 'Matched the SKU code in the document.'
+        : internalCodeHit ? 'Matched the DALA internal scan code in the document.'
+        : barcodeHit ? 'Matched the supplier barcode in the document.'
+        : aliasHit ? `Matched a known product alias: ${aliasHit}.`
+        : 'Matched the product name in the document.'
       return {
         productId: product.id,
         skuCode: product.sku_code,
         productName: product.name,
         quantity,
-        confidence: skuHit ? 0.84 : 0.72,
-        reason: skuHit ? 'Matched the SKU code in the document.' : 'Matched the product name in the document.',
+        confidence,
+        reason,
       }
     })
     .filter(Boolean)
@@ -63,28 +92,40 @@ function buildFallbackSuggestions({ documentText, products, partners }) {
     provider: 'fallback',
     partnerId: partnerSuggestion?.id || '',
     partnerName: partnerSuggestion?.name || '',
+    documentPartyName: '',
+    documentReference: '',
     notes,
     lines: lineSuggestions,
   }
 }
 
 async function requestOpenAiSuggestions({ documentText, fileData, mimeType, fileName, products, partners }) {
+  const fileHint = cleanText(fileName)
   const prompt = `
 You are helping a warehouse team draft a goods received note.
 Read the delivery note or invoice and return only valid JSON.
 Use the product and partner list below. If you are not sure, leave the field empty.
+The documents may be Tally exports, scanned printed invoices, or photos of printed copies.
+They often contain fields like Delivery Note No, Sales Invoice No, Ref No, Party, Description of Goods, Quantity Shipped, Quantity Billed, Rate, VAT, and Amount.
+If both shipped and billed quantity appear, use shipped quantity for the draft.
+Ignore prices, totals, and VAT when building product lines.
+Use SKU code, DALA internal code, supplier barcode, and aliases to find the best matching product.
 
 Partners:
 ${partners.map((partner) => `- ${partner.id} | ${partner.name}`).join('\n')}
 
 Products:
-${products.map((product) => `- ${product.id} | ${product.sku_code} | ${product.name}`).join('\n')}
+${products.map((product) => `- ${product.id} | ${product.sku_code} | ${product.internal_barcode_value || ''} | ${product.barcode_value || ''} | ${product.name} | aliases: ${(product.product_aliases || []).join(', ')}`).join('\n')}
   `.trim()
 
   const input = [{ role: 'system', content: [{ type: 'input_text', text: prompt }] }]
 
   if (documentText) {
     input.push({ role: 'user', content: [{ type: 'input_text', text: `Document text:\n${documentText}` }] })
+  }
+
+  if (fileHint) {
+    input.push({ role: 'user', content: [{ type: 'input_text', text: `Uploaded file name: ${fileHint}` }] })
   }
 
   if (fileData && mimeType) {
@@ -126,6 +167,8 @@ ${products.map((product) => `- ${product.id} | ${product.sku_code} | ${product.n
             properties: {
               partnerId: { type: 'string' },
               partnerName: { type: 'string' },
+              documentPartyName: { type: 'string' },
+              documentReference: { type: 'string' },
               notes: { type: 'array', items: { type: 'string' } },
               lines: {
                 type: 'array',
@@ -144,7 +187,7 @@ ${products.map((product) => `- ${product.id} | ${product.sku_code} | ${product.n
                 },
               },
             },
-            required: ['partnerId', 'partnerName', 'notes', 'lines'],
+            required: ['partnerId', 'partnerName', 'documentPartyName', 'documentReference', 'notes', 'lines'],
           },
         },
       },

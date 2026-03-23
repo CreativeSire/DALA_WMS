@@ -3,6 +3,7 @@ import { useAuth } from '../App'
 import { Card, Button, Input, Select, Modal, Table, PageHeader, Alert, Badge, SectionCard, StatStrip, TextArea } from '../components/ui'
 import ScanAssistCard from '../components/ScanAssistCard'
 import { useIsCompact } from '../lib/useIsCompact'
+import { describePackRule, getProductUnitOptions } from '../lib/units'
 
 export default function GRNPage() {
   const { supabase, api, authMode, profile } = useAuth()
@@ -55,6 +56,10 @@ export default function GRNPage() {
 
   function updateLine(i, field, value) {
     setLines(prev => prev.map((l, idx) => idx === i ? { ...l, [field]: value } : l))
+  }
+
+  function getProductMeta(productId) {
+    return products.find((item) => item.id === productId)
   }
 
   async function handleSubmit(e) {
@@ -221,6 +226,8 @@ export default function GRNPage() {
     return source.find((product) =>
       product.sku_code?.toLowerCase() === normalized
       || product.barcode_value?.toLowerCase() === normalized
+      || product.internal_barcode_value?.toLowerCase() === normalized
+      || (product.product_aliases || []).some((alias) => alias.toLowerCase() === normalized)
     )
   }
 
@@ -323,8 +330,8 @@ export default function GRNPage() {
             <div style={{ marginBottom: 16 }}>
               <ScanAssistCard
                 title="Scan-first intake"
-                copy="Use a handheld scanner or the device camera to add products by barcode before adjusting quantity, batch, and expiry."
-                placeholder="Scan SKU or barcode and press Enter"
+                copy="Use a handheld scanner or the device camera to add products before adjusting quantity, batch, and expiry. DALA scan codes, supplier barcodes, SKUs, and saved aliases all work."
+                placeholder="Scan DALA code, supplier barcode, or SKU"
                 onResolve={handleScannedProduct}
               />
             </div>
@@ -384,6 +391,11 @@ export default function GRNPage() {
 
               {lines.map((line, i) => (
                 <div key={i} style={{ background: '#0b0f10', border: '1px solid #1a2224', borderRadius: 6, padding: 16, marginBottom: 12 }}>
+                  {(() => {
+                    const product = getProductMeta(line.productId)
+                    const unitOptions = getProductUnitOptions(product)
+                    return (
+                      <>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12 }}>
                     <span style={{ fontFamily: 'DM Mono, monospace', fontSize: 10, color: '#4a6068', letterSpacing: '0.1em' }}>LINE {i + 1}</span>
                     {lines.length > 1 && (
@@ -400,16 +412,24 @@ export default function GRNPage() {
                         ))}
                       </Select>
                     </div>
+                    {product && (
+                      <div style={{ gridColumn: '1 / -1', marginTop: -2, marginBottom: 2, fontSize: 12, color: '#b8acab' }}>
+                        Pack rule: {describePackRule(product)}
+                      </div>
+                    )}
                     <Input label="Quantity" value={line.quantity} onChange={e => updateLine(i, 'quantity', e.target.value)} type="number" min="0.01" step="0.01" placeholder="e.g. 10" required />
                     <Select label="Unit" value={line.unitFraction} onChange={e => updateLine(i, 'unitFraction', e.target.value)}>
-                      <option value="1">Full Carton (1.0)</option>
-                      <option value="0.5">Half Carton (0.5)</option>
-                      <option value="0.25">Quarter Carton (0.25)</option>
+                      {unitOptions.map((option) => (
+                        <option key={option.value} value={option.value}>{option.label}</option>
+                      ))}
                     </Select>
                     <Input label="Batch Number" value={line.batchNumber} onChange={e => updateLine(i, 'batchNumber', e.target.value)} placeholder="Optional" />
                     <Input label="Expiry Date" value={line.expiryDate} onChange={e => updateLine(i, 'expiryDate', e.target.value)} type="date" />
                     <Input label="Unit Cost (₦)" value={line.unitCost} onChange={e => updateLine(i, 'unitCost', e.target.value)} type="number" min="0" step="0.01" placeholder="Optional" />
                   </div>
+                      </>
+                    )
+                  })()}
                 </div>
               ))}
 

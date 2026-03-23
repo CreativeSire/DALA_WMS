@@ -66,6 +66,12 @@ async function bootstrap() {
       brand_partner_id UUID NOT NULL REFERENCES brand_partners(id) ON DELETE RESTRICT,
       sku_code TEXT NOT NULL UNIQUE,
       barcode_value TEXT,
+      internal_barcode_value TEXT,
+      product_aliases TEXT[] NOT NULL DEFAULT ARRAY[]::TEXT[],
+      base_uom_label TEXT NOT NULL DEFAULT 'ctn',
+      alt_uom_label TEXT,
+      units_per_pack NUMERIC(14, 4) NOT NULL DEFAULT 1,
+      is_vatable BOOLEAN NOT NULL DEFAULT false,
       name TEXT NOT NULL,
       category TEXT,
       sku_class TEXT NOT NULL DEFAULT 'regular' ${skuClassCheck},
@@ -81,6 +87,20 @@ async function bootstrap() {
 
   await query(`ALTER TABLE products ADD COLUMN IF NOT EXISTS sku_class TEXT`)
   await query(`ALTER TABLE products ADD COLUMN IF NOT EXISTS barcode_value TEXT`)
+  await query(`ALTER TABLE products ADD COLUMN IF NOT EXISTS internal_barcode_value TEXT`)
+  await query(`ALTER TABLE products ADD COLUMN IF NOT EXISTS product_aliases TEXT[] DEFAULT ARRAY[]::TEXT[]`)
+  await query(`ALTER TABLE products ADD COLUMN IF NOT EXISTS base_uom_label TEXT DEFAULT 'ctn'`)
+  await query(`ALTER TABLE products ADD COLUMN IF NOT EXISTS alt_uom_label TEXT`)
+  await query(`ALTER TABLE products ADD COLUMN IF NOT EXISTS units_per_pack NUMERIC(14, 4) DEFAULT 1`)
+  await query(`ALTER TABLE products ADD COLUMN IF NOT EXISTS is_vatable BOOLEAN DEFAULT false`)
+  await query(`
+    UPDATE products
+    SET internal_barcode_value = CONCAT('DALA-', UPPER(REGEXP_REPLACE(COALESCE(sku_code, ''), '[^A-Za-z0-9]+', '-', 'g')))
+    WHERE internal_barcode_value IS NULL OR internal_barcode_value = ''
+  `)
+  await query(`UPDATE products SET product_aliases = ARRAY[]::TEXT[] WHERE product_aliases IS NULL`)
+  await query(`UPDATE products SET base_uom_label = 'ctn' WHERE base_uom_label IS NULL OR base_uom_label = ''`)
+  await query(`UPDATE products SET units_per_pack = 1 WHERE units_per_pack IS NULL OR units_per_pack <= 0`)
   await query(`UPDATE products SET sku_class = 'regular' WHERE sku_class IS NULL OR sku_class = ''`)
   await query(`ALTER TABLE products ALTER COLUMN sku_class SET DEFAULT 'regular'`)
   await query(`ALTER TABLE products ALTER COLUMN sku_class SET NOT NULL`)

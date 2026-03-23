@@ -4,6 +4,7 @@ import { Card, Button, Input, Select, Modal, Table, PageHeader, Alert, Badge, Se
 import ScanAssistCard from '../components/ScanAssistCard'
 import { allocateFIFOFromBatches, getAvailableQuantity } from '../lib/inventory'
 import { useIsCompact } from '../lib/useIsCompact'
+import { describePackRule, getProductUnitOptions } from '../lib/units'
 
 export default function DispatchPage() {
   const { supabase, api, authMode, profile } = useAuth()
@@ -72,6 +73,10 @@ export default function DispatchPage() {
       if (field === 'productId' && value) fetchAvailableBatches(value)
       return updated
     }))
+  }
+
+  function getProductMeta(productId) {
+    return products.find((item) => item.id === productId)
   }
 
   useEffect(() => {
@@ -232,6 +237,8 @@ export default function DispatchPage() {
     return products.find((product) =>
       product.sku_code?.toLowerCase() === normalized
       || product.barcode_value?.toLowerCase() === normalized
+      || product.internal_barcode_value?.toLowerCase() === normalized
+      || (product.product_aliases || []).some((alias) => alias.toLowerCase() === normalized)
     )
   }
 
@@ -347,8 +354,8 @@ export default function DispatchPage() {
             <div style={{ marginBottom: 16 }}>
               <ScanAssistCard
                 title="Scan-first dispatch"
-                copy="Scan products directly into the dispatch note. This is faster on the floor and reduces the chance of picking the wrong SKU."
-                placeholder="Scan SKU or barcode and press Enter"
+                copy="Scan products directly into the dispatch note. DALA scan codes, supplier barcodes, SKUs, and saved aliases all work here and reduce the chance of picking the wrong SKU."
+                placeholder="Scan DALA code, supplier barcode, or SKU"
                 onResolve={handleScannedProduct}
               />
             </div>
@@ -388,6 +395,8 @@ export default function DispatchPage() {
               {lines.map((line, i) => {
                 const batches = availableBatches[line.productId] || []
                 const totalAvail = getAvailableQuantity(batches)
+                const product = getProductMeta(line.productId)
+                const unitOptions = getProductUnitOptions(product)
                 return (
                   <div key={i} style={{ background: '#0b0f10', border: '1px solid #1a2224', borderRadius: 6, padding: 16, marginBottom: 12 }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12 }}>
@@ -411,11 +420,16 @@ export default function DispatchPage() {
                           {products.map(p => <option key={p.id} value={p.id}>{p.name} ({p.sku_code})</option>)}
                         </Select>
                       </div>
+                      {product && (
+                        <div style={{ gridColumn: '1 / -1', marginTop: -2, marginBottom: 2, fontSize: 12, color: '#b8acab' }}>
+                          Pack rule: {describePackRule(product)}
+                        </div>
+                      )}
                       <Input label="Quantity" value={line.quantity} onChange={e => updateLine(i, 'quantity', e.target.value)} type="number" min="0.01" step="0.01" placeholder="e.g. 5" required />
                       <Select label="Unit" value={line.unitFraction} onChange={e => updateLine(i, 'unitFraction', e.target.value)}>
-                        <option value="1">Full Carton</option>
-                        <option value="0.5">Half Carton</option>
-                        <option value="0.25">Quarter Carton</option>
+                        {unitOptions.map((option) => (
+                          <option key={option.value} value={option.value}>{option.label}</option>
+                        ))}
                       </Select>
                     </div>
                   </div>

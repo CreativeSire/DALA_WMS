@@ -15,7 +15,7 @@ export const victorJourney = {
   steps: [
     {
       title: '1. Victor receives new goods',
-      detail: 'Victor opens Stock Intake (GRN), scans products first where possible, lets the system suggest lines from the delivery note when needed, adds batch and expiry details, and saves the receipt. Once saved, stock is available in the system.',
+      detail: 'Victor opens Stock Intake (GRN), scans products first where possible, lets the system suggest lines from the delivery note when needed, chooses the right pack unit such as carton or loose unit, adds batch and expiry details, and saves the receipt. If a supplier has no barcode, DALA can still use its own internal scan code for that product. Once saved, stock is available in the system.',
     },
     {
       title: '2. Victor checks what is available',
@@ -23,7 +23,7 @@ export const victorJourney = {
     },
     {
       title: '3. Victor prepares goods for dispatch',
-      detail: 'Victor opens Dispatch, scans the products going out, and lets the system allocate from the right batches. This helps the team move older stock first and keeps the audit trail complete.',
+      detail: 'Victor opens Dispatch, scans the products going out, chooses the correct pack unit where needed, and lets the system allocate from the right batches. This helps the team move older stock first and keeps the audit trail complete.',
     },
     {
       title: '4. Victor manages risk before it becomes a loss',
@@ -31,7 +31,7 @@ export const victorJourney = {
     },
     {
       title: '5. Victor confirms what is physically on the floor',
-      detail: 'Victor opens Physical Count, records what is actually in the warehouse, submits the count, and approves the result so the system reflects reality instead of assumptions.',
+      detail: 'Victor opens Physical Count, records what is actually in the warehouse, and can also scan labeled products to speed up repeated counting. He then submits the count and approves the result so the system reflects reality instead of assumptions.',
     },
     {
       title: '6. Victor starts the day with the ops brief',
@@ -54,7 +54,7 @@ export const workflowVisuals = [
     note: 'Goods come in, they are checked, they are entered in Stock Intake, and then they become part of live stock.',
     steps: [
       { label: 'Truck arrives', detail: 'Check delivery count, batch details, and expiry information.' },
-      { label: 'GRN entered', detail: 'Save the delivery under the right partner and products.' },
+      { label: 'GRN entered', detail: 'Save the delivery under the right partner and products. Use supplier barcodes or DALA scan codes if needed.' },
       { label: 'Batch created', detail: 'The system creates live stock records for the goods received.' },
       { label: 'Risks watched', detail: 'Expiry and reorder alerts begin to work automatically.' },
     ],
@@ -241,6 +241,18 @@ export const aiAssistGuide = [
   },
   {
     title: 'Scan-first workflow',
-    detail: 'GRN and Dispatch both support scan-first entry. Warehouse staff can use a handheld scanner or supported device camera to pull products into the form without typing the SKU manually.',
+    detail: 'GRN, Dispatch, and Physical Count support scan-first entry. Warehouse staff can use a handheld scanner or supported device camera. If a supplier does not provide barcodes, DALA can still generate and use its own internal scan code for the product.',
+  },
+  {
+    title: 'Product aliases',
+    detail: 'Products can store alternate names seen on invoices, delivery notes, and count sheets. This helps the system match the correct SKU even when different teams write the same product in different ways.',
+  },
+  {
+    title: 'Pack conversion',
+    detail: 'Products can now hold their base pack, loose-unit name, and units per pack. This means the warehouse can work in carton and piece terms without manually converting figures outside the app.',
+  },
+  {
+    title: 'Price list mapping',
+    detail: 'The stockist price list can now be imported into the system to strengthen product aliases, VAT flags, units per pack, and DALA internal scan codes. This reduces the need to maintain separate side documents for product setup.',
   },
 ]

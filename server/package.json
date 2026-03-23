@@ -8,6 +8,7 @@
     "start": "node src/server.js",
     "db:bootstrap": "node src/scripts/bootstrap.js",
     "db:seed-demo": "node src/scripts/seed-demo.js",
+    "catalog:import-pricelist": "node src/scripts/import-stockist-pricelist.js",
     "test": "vitest run"
   },
   "dependencies": {
@@ -21,6 +22,7 @@
     "jsonwebtoken": "^9.0.2",
     "nodemailer": "^6.10.1",
     "pg": "^8.13.3",
+    "xlsx": "^0.18.5",
     "zod": "^3.24.2"
   },
   "devDependencies": {

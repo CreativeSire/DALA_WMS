@@ -1130,6 +1130,9 @@ export async function getCountSessionDetail(sessionId) {
         p.id AS product_id,
         p.name AS product_name,
         p.sku_code,
+        p.barcode_value,
+        p.internal_barcode_value,
+        p.product_aliases,
         p.unit_type,
         bp.name AS brand_partner,
         counter.full_name AS counted_by_name
